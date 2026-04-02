@@ -1,0 +1,4831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rack & Roll</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --felt-green: #2d6a4f;
+    --felt-dark: #1b4332;
+    --rail-brown: #5c3d1e;
+    --rail-dark: #3d2510;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --cream: #f5f0e8;
+    --dark: #0d0d0d;
+    --panel: #1a1a1a;
+    --panel2: #242424;
+    --text: #e8e0d0;
+    --text-dim: #8a7e6e;
+    --accent: #c9a84c;
+    --red: #c0392b;
+    --blue: #2980b9;
+    --pocket: #0a0a0a;
+    --cue-white: #f8f4ec;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0d0d;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  h1, h2, h3 { font-family: 'Playfair Display', serif; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; width: 100%; height: 100vh; position: absolute; top: 0; left: 0; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* ── TITLE SCREEN ── */
+  #screen-title {
+    background: radial-gradient(ellipse at 50% 30%, #1b4332 0%, #0a0a0a 70%);
+  }
+  .title-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 10vw, 90px);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(201,168,76,0.4), 3px 3px 0 #3d2510;
+    letter-spacing: -2px;
+    line-height: 1;
+    text-align: center;
+  }
+  .title-sub {
+    font-size: 14px;
+    letter-spacing: 6px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 8px;
+    text-align: center;
+  }
+  .title-ball {
+    font-size: 60px;
+    margin: 20px 0;
+    animation: spin 4s linear infinite;
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .btn {
+    background: linear-gradient(135deg, var(--gold), #a07830);
+    color: #1a0f00;
+    border: none;
+    padding: 14px 36px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
+  .btn:active { transform: translateY(0); }
+  .btn-outline {
+    background: transparent;
+    color: var(--gold);
+    border: 1.5px solid var(--gold);
+  }
+  .btn-outline:hover { background: rgba(201,168,76,0.1); }
+  .btn-sm { padding: 8px 20px; font-size: 13px; }
+  .btn-danger { background: linear-gradient(135deg, #c0392b, #922b21); color: #fff; }
+
+  .title-btns { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 30px; }
+
+  /* ── PROFILE SCREEN ── */
+  #screen-profiles {
+    background: #111;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .profile-header { text-align: center; margin-bottom: 24px; }
+  .profile-header h2 { font-size: 28px; color: var(--gold); }
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto 20px;
+  }
+  .profile-card {
+    background: var(--panel2);
+    border: 1.5px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .profile-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .profile-card.selected { border-color: var(--gold); background: #2a2200; }
+  .profile-card.add-new { border-style: dashed; color: var(--text-dim); }
+  .profile-card.add-new:hover { color: var(--gold); border-color: var(--gold); }
+  .profile-avatar { font-size: 32px; margin-bottom: 8px; }
+  .profile-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .profile-coins { font-size: 12px; color: var(--gold); }
+  .profile-games { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .profile-delete {
+    position: absolute; top: 6px; right: 8px;
+    background: none; border: none; color: #555; cursor: pointer; font-size: 14px;
+  }
+  .profile-delete:hover { color: var(--red); }
+  .selected-players {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    max-width: 700px; margin: 0 auto 16px;
+  }
+  .selected-tag {
+    background: #2a2200; border: 1px solid var(--gold);
+    padding: 4px 12px; border-radius: 20px; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .selected-tag button { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; }
+
+  /* ── GAME SCREEN ── */
+  #screen-game {
+    background: #0a0a0a;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+  }
+  #game-canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+  #game-sidebar {
+    width: 100%;
+    min-width: unset;
+    height: auto;
+    background: rgba(15,15,15,0.97);
+    border-top: 1px solid #2a2a2a;
+    border-right: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 6px 12px;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+  }
+  #gameCanvas {
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .sidebar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    color: var(--gold);
+    white-space: nowrap;
+    padding-right: 8px;
+    border-right: 1px solid #333;
+    flex-shrink: 0;
+  }
+  .player-panel {
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 5px 10px;
+    border: 1.5px solid #333;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
+    min-width: 110px;
+  }
+  .player-panel.active { border-color: var(--gold); }
+  .player-panel-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  .player-panel-group { font-size: 10px; margin-top: 1px; }
+  .player-panel-coins { font-size: 10px; color: var(--gold); }
+  .ball-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+
+  .status-box {
+    background: var(--panel2); border-radius: 6px; padding: 5px 10px;
+    font-size: 11px; color: var(--text-dim); text-align: center;
+    min-width: 140px; max-width: 240px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #status-msg { line-height: 1.3; }
+
+  .power-bar-wrap { padding: 0; flex-shrink: 0; min-width: 80px; }
+  .power-bar-label { font-size: 10px; color: var(--text-dim); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .power-bar-bg { background: #333; border-radius: 4px; height: 8px; overflow: hidden; }
+  .power-bar-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c); border-radius: 4px; transition: width 0.05s; }
+
+  /* ── SHOP SCREEN ── */
+  #screen-shop {
+    background: #111;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .shop-header { text-align: center; margin-bottom: 20px; }
+  .shop-header h2 { font-size: 28px; color: var(--gold); }
+  .shop-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .shop-tab {
+    padding: 8px 20px; border-radius: 20px; border: 1.5px solid #444;
+    background: transparent; color: var(--text-dim); cursor: pointer; font-size: 13px;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .shop-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+  .shop-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px; max-width: 800px; margin: 0 auto 20px;
+  }
+  .shop-item {
+    background: var(--panel2); border: 1.5px solid #333;
+    border-radius: 8px; padding: 14px; text-align: center;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .shop-item:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .shop-item.owned { border-color: #2ecc71; }
+  .shop-item.equipped { border-color: var(--gold); background: #2a2200; }
+  .shop-item-preview { height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; font-size: 28px; }
+  .shop-item-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .shop-item-price { font-size: 11px; color: var(--gold); }
+  .shop-item-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; }
+  .badge-owned { background: #1a3d2a; color: #2ecc71; }
+  .badge-equipped { background: #2a2200; color: var(--gold); }
+
+  /* coin packages */
+  .coin-packages { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 800px; margin: 0 auto; }
+  .coin-pkg {
+    background: var(--panel2); border: 1.5px solid rgba(201,168,76,0.3);
+    border-radius: 8px; padding: 16px; text-align: center; cursor: pointer;
+    transition: all 0.15s; min-width: 120px; position: relative;
+  }
+  .coin-pkg:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .coin-pkg-coins { font-size: 24px; font-weight: 700; color: var(--gold); }
+  .coin-pkg-price { font-size: 14px; font-weight: 600; margin-top: 4px; }
+  .coin-pkg-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .pkg-badge {
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: var(--gold); color: #1a0f00; font-size: 9px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal {
+    background: var(--panel); border: 1.5px solid #333; border-radius: 12px;
+    padding: 28px; max-width: 420px; width: 90%; text-align: center;
+  }
+  .modal h3 { font-size: 22px; color: var(--gold); margin-bottom: 12px; }
+  .modal p { color: var(--text-dim); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .modal input {
+    width: 100%; padding: 10px 14px; background: #111; border: 1.5px solid #444;
+    border-radius: 6px; color: var(--text); font-size: 15px; font-family: 'DM Sans', sans-serif;
+    margin-bottom: 14px; outline: none;
+  }
+  .modal input:focus { border-color: var(--gold); }
+
+  /* ── END GAME SCREEN ── */
+  #screen-end {
+    background: radial-gradient(ellipse at 50% 30%, #1b4332 0%, #0a0a0a 70%);
+  }
+  .end-title { font-size: 48px; color: var(--gold); text-align: center; margin-bottom: 8px; }
+  .end-winner { font-size: 20px; text-align: center; margin-bottom: 24px; color: var(--text-dim); }
+  .end-results { display: flex; flex-direction: column; gap: 8px; max-width: 360px; width: 100%; margin-bottom: 24px; }
+  .end-row {
+    background: var(--panel2); border-radius: 6px; padding: 10px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-left: 3px solid #333;
+  }
+  .end-row.winner { border-left-color: var(--gold); }
+  .end-row-name { font-weight: 600; }
+  .end-row-coins { font-size: 12px; color: var(--gold); }
+
+  /* ── WALLET BAR ── */
+  .wallet-bar {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel2); border-radius: 6px; padding: 6px 10px;
+    font-size: 12px;
+  }
+  .wallet-earned { color: #2ecc71; }
+  .wallet-paid { color: var(--gold); }
+
+  /* ── IMPORT/EXPORT ── */
+  .io-section { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+
+  /* ── PLAYER COUNT SCREEN ── */
+  #screen-player-count {
+    background: radial-gradient(ellipse at 50% 30%, #1b4332 0%, #0a0a0a 70%);
+  }
+  .count-title { font-size: 28px; color: var(--gold); text-align: center; margin-bottom: 6px; }
+  .count-sub { font-size: 13px; color: var(--text-dim); text-align: center; margin-bottom: 32px; letter-spacing: 1px; }
+  .count-options {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px;
+  }
+  .count-card {
+    background: var(--panel2); border: 2px solid #333; border-radius: 12px;
+    width: 110px; padding: 22px 12px; text-align: center; cursor: pointer;
+    transition: all 0.18s; position: relative;
+  }
+  .count-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(201,168,76,0.15); }
+  .count-card.selected { border-color: var(--gold); background: #2a2200; box-shadow: 0 0 0 3px rgba(201,168,76,0.2); }
+  .count-card-num { font-family: 'Playfair Display', serif; font-size: 42px; color: var(--gold); line-height: 1; }
+  .count-card-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .count-card-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--gold); color: #1a0f00; font-size: 9px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  }
+  .guest-strip {
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    margin-top: 4px; margin-bottom: 16px;
+  }
+  .guest-strip-line { flex: 1; max-width: 80px; height: 1px; background: #333; }
+  .guest-strip-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+
+  /* ── AI ROSTER ── */
+  .ai-roster-header { text-align: center; margin-bottom: 16px; }
+  .ai-roster-header h3 { font-size: 18px; color: var(--gold); }
+  .ai-roster-header p { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .ai-tier { margin-bottom: 18px; max-width: 700px; width: 100%; }
+  .ai-tier-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 8px; padding: 4px 10px; border-radius: 4px; display: inline-block;
+  }
+  .ai-tier-label.easy   { background: rgba(46,204,113,0.15); color: #2ecc71; }
+  .ai-tier-label.medium { background: rgba(243,156,18,0.15);  color: #f39c12; }
+  .ai-tier-label.hard   { background: rgba(231,76,60,0.15);   color: #e74c3c; }
+  .ai-cards-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ai-card {
+    background: var(--panel2); border: 1.5px solid #333; border-radius: 8px;
+    padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s;
+    flex: 1; min-width: 90px; max-width: 140px;
+  }
+  .ai-card:hover { border-color: #555; transform: translateY(-2px); }
+  .ai-card.selected-ai { border-color: var(--gold); background: #2a2200; }
+  .ai-card-avatar { font-size: 28px; margin-bottom: 4px; }
+  .ai-card-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .ai-card-trait { font-size: 10px; color: var(--text-dim); line-height: 1.3; }
+  .ai-slot-indicator {
+    display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 16px; min-height: 32px;
+  }
+  .ai-slot-tag {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ai-slot-tag.easy   { background: rgba(46,204,113,0.15); border: 1px solid #2ecc71; color: #2ecc71; }
+  .ai-slot-tag.medium { background: rgba(243,156,18,0.15);  border: 1px solid #f39c12; color: #f39c12; }
+  .ai-slot-tag.hard   { background: rgba(231,76,60,0.15);   border: 1px solid #e74c3c; color: #e74c3c; }
+  .ai-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .ai-badge.easy   { background: #2ecc71; }
+  .ai-badge.medium { background: #f39c12; }
+  .ai-badge.hard   { background: #e74c3c; }
+
+  /* ── PROFILE SCREEN UPDATES ── */
+  .profile-screen-sub { font-size: 13px; color: var(--text-dim); text-align: center; margin-top: 4px; }
+  .profile-ai-fill-info {
+    text-align: center; font-size: 12px; color: var(--text-dim);
+    margin-bottom: 12px; padding: 8px 16px; background: var(--panel2);
+    border-radius: 6px; max-width: 700px; width: 100%;
+  }
+  .profile-ai-fill-info strong { color: var(--gold); }
+
+  /* ── AI THINKING INDICATOR ── */
+  .ai-thinking {
+    display: inline-block; animation: pulse-thinking 0.7s ease-in-out infinite alternate;
+  }
+  @keyframes pulse-thinking { from { opacity: 0.4; } to { opacity: 1; } }
+
+  /* ── BALL-IN-HAND MODE ── */
+  #screen-game.ball-in-hand #gameCanvas { cursor: crosshair; }
+  .ball-in-hand-banner {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(201,168,76,0.18); border: 1.5px solid var(--gold);
+    color: var(--gold); font-size: 13px; font-weight: 600;
+    padding: 6px 18px; border-radius: 20px; pointer-events: none;
+    letter-spacing: 0.5px; white-space: nowrap; z-index: 10;
+    animation: pulse-thinking 0.9s ease-in-out infinite alternate;
+  }
+
+  /* ── FOUL TOOLTIP ── */
+  .foul-toast {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(192,57,43,0.92); color: #fff; font-size: 13px;
+    padding: 8px 20px; border-radius: 8px; pointer-events: none; z-index: 20;
+    animation: toast-in 0.2s ease-out;
+    white-space: nowrap;
+  }
+  @keyframes toast-in { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  /* ── WIN STREAK ── */
+  .win-streak-badge {
+    display: inline-block; background: linear-gradient(135deg,#f39c12,#e67e22);
+    color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px;
+    border-radius: 12px; margin-top: 8px; letter-spacing: 0.5px;
+  }
+
+  /* ── LEVEL / XP ── */
+  .level-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: linear-gradient(135deg,#1a3a5c,#0d2137);
+    border: 1px solid #2980b9; border-radius: 10px;
+    padding: 2px 7px; font-size: 10px; font-weight: 700; color: #74b9ff;
+    letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .level-badge.elite { border-color:#e74c3c; color:#e74c3c; background:linear-gradient(135deg,#2a0a0a,#1a0505); }
+  .level-badge.mid   { border-color:#f39c12; color:#f39c12; background:linear-gradient(135deg,#2a1a00,#1a0f00); }
+  .xp-bar-bg  { background:#222; border-radius:3px; height:4px; overflow:hidden; margin-top:3px; }
+  .xp-bar-fill{ height:100%; border-radius:3px; background:linear-gradient(90deg,#2980b9,#74b9ff); transition:width 0.4s ease; }
+
+  /* ── LEVEL-UP TOAST ── */
+  .levelup-toast {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:linear-gradient(135deg,#1a3a5c,#0d2137);
+    border:2px solid #74b9ff; border-radius:14px;
+    padding:22px 36px; text-align:center; z-index:200; pointer-events:none;
+    animation:levelup-in 0.35s cubic-bezier(.17,.89,.32,1.28);
+  }
+  @keyframes levelup-in { from{opacity:0;transform:translate(-50%,-50%) scale(0.7);} to{opacity:1;transform:translate(-50%,-50%) scale(1);} }
+  .levelup-number { font-family:'Playfair Display',serif; font-size:48px; color:#74b9ff; line-height:1; }
+  .levelup-label  { font-size:13px; color:var(--text-dim); margin-top:4px; letter-spacing:2px; text-transform:uppercase; }
+  .levelup-perks  { font-size:12px; color:var(--text); margin-top:8px; line-height:1.7; }
+
+  /* ── SHOP PROFILE SELECTOR ── */
+  .shop-profile-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--panel2); border:1.5px solid #333; border-radius:20px;
+    padding:5px 12px; font-size:12px; cursor:pointer; transition:all 0.15s;
+  }
+  .shop-profile-chip:hover { border-color:#555; }
+  .shop-profile-chip.active { border-color:var(--gold); background:#2a2200; color:var(--gold); }
+  .shop-profile-chip.create { border-style:dashed; color:var(--text-dim); }
+  .shop-profile-chip.create:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── POWER BALL SHOP ── */
+  .powerball-shop { max-width:600px; margin:0 auto; width:100%; padding:0 4px; }
+  .pb-shop-item {
+    background:var(--panel2); border:1.5px solid #333; border-radius:8px;
+    padding:12px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px;
+  }
+  .pb-shop-item:hover { border-color:#555; }
+  .pb-shop-icon  { font-size:26px; flex-shrink:0; }
+  .pb-shop-info  { flex:1; }
+  .pb-shop-name  { font-weight:700; font-size:13px; }
+  .pb-shop-desc  { font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .pb-shop-stock { font-size:11px; color:var(--gold); margin-top:3px; }
+  .pb-shop-btns  { display:flex; flex-direction:column; gap:4px; align-items:flex-end; flex-shrink:0; }
+
+  /* ── POWER BALL INVENTORY (sidebar) ── */
+  .pball-inv-btn {
+    background:var(--panel2); border:1.5px solid #555; border-radius:6px;
+    padding:4px 8px; font-size:11px; cursor:pointer; white-space:nowrap;
+    display:flex; align-items:center; gap:4px; color:var(--text);
+    transition:all 0.15s; flex-shrink:0;
+  }
+  .pball-inv-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── POWER BALLS ── */
+  .power-ball-indicator {
+    display: none; align-items: center; gap: 6px;
+    background: var(--panel2); border-radius: 6px; padding: 6px 8px;
+    font-size: 11px; border: 1px solid #333;
+  }
+  .power-ball-indicator.active { display: flex; border-color: #9b59b6; }
+  .pball-dot { width: 10px; height: 10px; border-radius: 50%; background: #9b59b6; }
+  .pball-name { color: #c39bd3; font-weight: 600; }
+
+  /* ── BREAK RATING ── */
+  .break-toast {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(15,15,15,0.94); border: 1.5px solid var(--gold);
+    color: var(--text); font-size: 13px; padding: 10px 20px;
+    border-radius: 10px; pointer-events: none; z-index: 25;
+    text-align: center; line-height: 1.6; white-space: nowrap;
+    animation: toast-in 0.25s ease-out;
+  }
+  .break-grade { font-size: 22px; font-weight: 700; color: var(--gold); }
+
+  /* ── SLOW-MO REPLAY OVERLAY ── */
+  .replay-banner {
+    position: absolute; top: 8px; right: 12px;
+    background: rgba(231,76,60,0.85); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 3px 10px;
+    border-radius: 4px; letter-spacing: 1px; pointer-events: none;
+    z-index: 30; text-transform: uppercase;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    #game-sidebar { padding: 4px 8px; gap: 5px; }
+    .sidebar-title { display: none; }
+    .player-panel { min-width: 80px; }
+    .status-box { min-width: 100px; max-width: 160px; }
+    .count-card { width: 80px; padding: 16px 8px; }
+    .count-card-num { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: TITLE
+═══════════════════════════════════════════════ -->
+<div id="screen-title" class="screen active">
+  <div class="title-logo">Rack &amp; Roll</div>
+  <div class="title-sub">Billiards · By Avalon Media</div>
+  <div class="title-ball">🎱</div>
+  <div class="title-btns">
+    <button class="btn" onclick="quickPlay()">⚡ Quick Play</button>
+    <button class="btn btn-outline" onclick="showScreen('player-count')">Custom Game</button>
+    <button class="btn btn-outline" onclick="showScreen('shop-solo')">Shop</button>
+    <div class="io-section">
+      <button class="btn btn-outline btn-sm" onclick="importProfile()">Import Profile</button>
+      <button class="btn btn-outline btn-sm" onclick="exportAllProfiles()">Export All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: PLAYER COUNT
+═══════════════════════════════════════════════ -->
+<div id="screen-player-count" class="screen">
+  <div class="count-title">How Many Players?</div>
+  <div class="count-sub">Total seats at the table — AI fills any empty seats</div>
+  <div class="count-options" id="count-options">
+    <div class="count-card" onclick="selectPlayerCount(2)">
+      <div class="count-card-badge">Solo / 1v1</div>
+      <div class="count-card-num">2</div>
+      <div class="count-card-label">1 AI opponent</div>
+    </div>
+    <div class="count-card" onclick="selectPlayerCount(3)">
+      <div class="count-card-num">3</div>
+      <div class="count-card-label">up to 2 AI</div>
+    </div>
+    <div class="count-card" onclick="selectPlayerCount(4)">
+      <div class="count-card-badge">Full Table</div>
+      <div class="count-card-num">4</div>
+      <div class="count-card-label">up to 3 AI</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn" id="btn-count-next" onclick="goToProfilesFromCount()" disabled>Next →</button>
+    <button class="btn btn-outline" onclick="showScreen('title')">Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: AI ROSTER (shown when AI slots > 0)
+═══════════════════════════════════════════════ -->
+<div id="screen-ai-roster" class="screen" style="overflow-y:auto;padding:20px;">
+  <div class="ai-roster-header">
+    <h3>Choose Your Opponents</h3>
+    <p id="ai-roster-sub">Pick the AI players who'll fill the open slots</p>
+  </div>
+  <div class="ai-slot-indicator" id="ai-slot-indicator"></div>
+  <div id="ai-roster-tiers" style="width:100%;max-width:700px;margin:0 auto;"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px;">
+    <button class="btn" id="btn-ai-confirm" onclick="confirmAIRoster()">Play →</button>
+    <button class="btn btn-outline btn-sm" onclick="autoSelectAI();renderAIRoster();">↺ Recommended</button>
+    <button class="btn btn-outline" onclick="showScreen('profiles')">Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: PROFILE SELECT
+═══════════════════════════════════════════════ -->
+<div id="screen-profiles" class="screen">
+  <div class="profile-header">
+    <h2 id="profile-screen-title">Select Players</h2>
+    <p class="profile-screen-sub" id="profile-screen-sub">Choose your human players</p>
+  </div>
+  <div class="profile-ai-fill-info" id="profile-ai-fill-info" style="display:none;"></div>
+  <div class="selected-players" id="selected-players-bar"></div>
+  <div class="profile-grid" id="profile-grid"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px;">
+    <button class="btn btn-outline btn-sm" id="btn-guest" onclick="playAsGuest()" style="display:none;">👤 Guest Mode</button>
+    <button class="btn" id="btn-play-game" onclick="proceedFromProfiles()">🎱 Next</button>
+    <button class="btn btn-outline" onclick="showScreen('player-count')">Back</button>
+  </div>
+  <div class="io-section" style="margin-top:12px;">
+    <button class="btn btn-outline btn-sm" onclick="importProfile()">Import</button>
+    <button class="btn btn-outline btn-sm" onclick="exportAllProfiles()">Export All</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: GAME
+═══════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+  <div id="game-sidebar">
+    <!-- Title brand -->
+    <div class="sidebar-title">Rack &amp; Roll</div>
+
+    <!-- Player panels (horizontal) -->
+    <div id="player-panels" style="display:flex;flex-direction:row;gap:6px;flex-shrink:0;"></div>
+
+    <!-- Status -->
+    <div class="status-box"><div id="status-msg">Lining up...</div></div>
+
+    <!-- Power bar -->
+    <div class="power-bar-wrap" style="min-width:90px;">
+      <div class="power-bar-label"><span>Power</span><span id="power-pct">0%</span></div>
+      <div class="power-bar-bg"><div class="power-bar-fill" id="power-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Spin indicator (compact inline) -->
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+      <canvas id="spinCanvas" width="44" height="44" style="border-radius:50%;border:1px solid #333;cursor:pointer;flex-shrink:0;"></canvas>
+      <span style="font-size:10px;color:var(--text-dim);white-space:nowrap;" id="spin-label">Center</span>
+    </div>
+
+    <!-- Power ball active indicator -->
+    <div class="power-ball-indicator" id="pball-indicator" style="flex-shrink:0;">
+      <div class="pball-dot" id="pball-dot"></div>
+      <span class="pball-name" id="pball-name">Power Ball!</span>
+    </div>
+
+    <!-- Power ball inventory — shown/hidden by renderInventorySidebar() -->
+    <div id="pball-inventory" style="display:none;flex-shrink:0;gap:4px;"></div>
+
+    <!-- Controls hint (compact) -->
+    <div style="font-size:10px;color:#555;white-space:nowrap;flex-shrink:0;">
+      Move mouse → Aim &nbsp;|&nbsp; Click &amp; hold → Charge &nbsp;|&nbsp; Release → Shoot
+    </div>
+
+    <!-- Buttons pushed to the right -->
+    <div style="display:flex;gap:6px;margin-left:auto;flex-shrink:0;align-items:center;">
+      <button class="btn btn-outline btn-sm" onclick="openShopInGame()">🛒</button>
+      <button class="btn btn-outline btn-sm" id="btn-mute" onclick="toggleMute()" style="font-size:11px;">🔊</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmQuit()">Quit</button>
+    </div>
+  </div>
+
+  <div id="game-canvas-wrap" style="position:relative;">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ball-in-hand-banner" class="ball-in-hand-banner" style="display:none;">⚪ Ball in hand — click to place cue ball</div>
+    <div id="replay-banner" class="replay-banner" style="display:none;">⏪ Replay</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: SHOP (solo, from title)
+═══════════════════════════════════════════════ -->
+<div id="screen-shop-solo" class="screen">
+  <div class="shop-header"><h2>🛒 Shop</h2></div>
+
+  <!-- Profile selector + wallet bar -->
+  <div id="shop-profile-bar" style="display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;min-height:36px;"></div>
+
+  <div class="shop-tabs">
+    <button class="shop-tab active" onclick="shopTab('cues',this)">Cue Sticks</button>
+    <button class="shop-tab" onclick="shopTab('felt',this)">Table Felt</button>
+    <button class="shop-tab" onclick="shopTab('balls',this)">Ball Sets</button>
+    <button class="shop-tab" onclick="shopTab('powerballs',this)">⚡ Power Balls</button>
+    <button class="shop-tab" onclick="shopTab('coins',this)">Buy Coins</button>
+  </div>
+  <div class="shop-grid" id="shop-grid-solo"></div>
+  <div class="coin-packages" id="shop-coins-solo" style="display:none;"></div>
+  <div class="powerball-shop" id="shop-powerballs-solo" style="display:none;"></div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">
+    <button class="btn btn-outline" onclick="showScreen('title')">Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: END GAME
+═══════════════════════════════════════════════ -->
+<div id="screen-end" class="screen">
+  <div class="end-title" id="end-title-text">Game Over</div>
+  <div class="end-winner" id="end-winner-text"></div>
+  <div class="end-results" id="end-results"></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn" id="btn-play-again" onclick="playAgain()">Play Again</button>
+    <button class="btn btn-outline" onclick="showScreen('title')">Main Menu</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+
+const PROFILE_KEY = 'rr_profiles_v1';
+const MAX_PROFILES = 6;
+const DAILY_EARN_CAP = 100;
+const EARN_EXPIRY_DAYS = 3;
+const PLAYER_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12'];
+const PLAYER_AVATARS = ['🎱','🎯','⚡','🌟']; // defaults for in-game (index-based)
+// Full set available for profile avatar selection
+const ALL_AVATARS = ['🎱','🎯','⚡','🌟','🔥','💎','🦈','👑','🐉','🎪','🎲','🏆','⚔️','🎭','🌈','🦁','🐺','🦊','🤠','🥷'];
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIO ENGINE  (Web Audio API — no files, fully procedural)
+// ═══════════════════════════════════════════════════════════════════
+
+const Audio = (() => {
+  let ctx = null;
+  let muted = false;
+  let lastBallHit = 0; // throttle rapid collision sounds
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  // Master gain helper — all sounds route through this
+  function masterGain(vol = 1) {
+    const g = getCtx().createGain();
+    g.gain.value = muted ? 0 : Math.min(1, vol);
+    g.connect(getCtx().destination);
+    return g;
+  }
+
+  // Generic envelope: attack → sustain → decay
+  function envelope(gain, vol, atk, sus, dec, now) {
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + atk);
+    gain.gain.setValueAtTime(vol, now + atk + sus);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + atk + sus + dec);
+  }
+
+  const SFX = {
+
+    // ── Cue strike: sharp thwack, pitch rises with power ──
+    cueHit(power = 0.5) {
+      if (muted) return;
+      const ac = getCtx(), now = ac.currentTime;
+      const vol = 0.18 + power * 0.35;
+
+      // Noise burst (the "crack")
+      const bufLen = ac.sampleRate * 0.08;
+      const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+
+      const filter = ac.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 800 + power * 1400;
+      filter.Q.value = 2;
+
+      const g = ac.createGain();
+      envelope(g, vol, 0.001, 0.01, 0.12, now);
+
+      noise.connect(filter); filter.connect(g); g.connect(ac.destination);
+      noise.start(now); noise.stop(now + 0.15);
+
+      // Low thud underneath
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120 + power * 80, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+      const g2 = ac.createGain();
+      envelope(g2, vol * 0.6, 0.001, 0.005, 0.08, now);
+      osc.connect(g2); g2.connect(ac.destination);
+      osc.start(now); osc.stop(now + 0.1);
+    },
+
+    // ── Ball-ball collision: crisp ivory click ──
+    ballHit(velocity = 1) {
+      if (muted) return;
+      const now = Date.now();
+      if (now - lastBallHit < 80) return; // throttle
+      lastBallHit = now;
+
+      const ac = getCtx(), t = ac.currentTime;
+      const vol = Math.min(0.22, 0.06 + velocity * 0.16);
+
+      const bufLen = ac.sampleRate * 0.05;
+      const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.3));
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+
+      const filter = ac.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 1800;
+
+      const g = ac.createGain();
+      envelope(g, vol, 0.0005, 0.003, 0.06, t);
+      noise.connect(filter); filter.connect(g); g.connect(ac.destination);
+      noise.start(t); noise.stop(t + 0.08);
+    },
+
+    // ── Cushion bounce: dull woody thud ──
+    cushion(velocity = 1) {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      const vol = Math.min(0.14, 0.03 + velocity * 0.11);
+
+      const osc = ac.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.exponentialRampToValueAtTime(60, t + 0.06);
+
+      const g = ac.createGain();
+      envelope(g, vol, 0.001, 0.01, 0.09, t);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t); osc.stop(t + 0.12);
+    },
+
+    // ── Ball pocketed: satisfying hollow drop ──
+    pocket() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+
+      // Descending tone
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(340, t);
+      osc.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+      const g = ac.createGain();
+      envelope(g, 0.28, 0.002, 0.04, 0.16, t);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t); osc.stop(t + 0.25);
+
+      // Rattle/clunk noise
+      const bufLen = ac.sampleRate * 0.12;
+      const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.25));
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 400;
+      const g2 = ac.createGain();
+      envelope(g2, 0.15, 0.001, 0.02, 0.1, t + 0.04);
+      noise.connect(filter); filter.connect(g2); g2.connect(ac.destination);
+      noise.start(t + 0.04); noise.stop(t + 0.18);
+    },
+
+    // ── Scratch: harsh descending buzz ──
+    scratch() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      [0, 0.06, 0.12].forEach((delay, i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220 - i * 40, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(60, t + delay + 0.12);
+        const g = ac.createGain();
+        envelope(g, 0.12 - i * 0.03, 0.002, 0.02, 0.1, t + delay);
+        osc.connect(g); g.connect(ac.destination);
+        osc.start(t + delay); osc.stop(t + delay + 0.15);
+      });
+    },
+
+    // ── Turn change: soft click ──
+    turnChange() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      const osc = ac.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(660, t + 0.06);
+      const g = ac.createGain();
+      envelope(g, 0.08, 0.001, 0.01, 0.06, t);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t); osc.stop(t + 0.08);
+    },
+
+    // ── Elimination: dramatic descending chord ──
+    eliminate() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      [200, 150, 100].forEach((freq, i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        const g = ac.createGain();
+        envelope(g, 0.12, 0.01, 0.1, 0.4, t + i * 0.12);
+        const filter = ac.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 600;
+        osc.connect(filter); filter.connect(g); g.connect(ac.destination);
+        osc.start(t + i * 0.12); osc.stop(t + i * 0.12 + 0.6);
+      });
+    },
+
+    // ── Win fanfare: bright ascending arpeggio ──
+    win() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        const g = ac.createGain();
+        envelope(g, 0.18, 0.005, 0.08, 0.22, t + i * 0.1);
+        osc.connect(g); g.connect(ac.destination);
+        osc.start(t + i * 0.1); osc.stop(t + i * 0.1 + 0.35);
+      });
+    },
+
+    // ── Lose: sad descending ──
+    lose() {
+      if (muted) return;
+      const ac = getCtx(), t = ac.currentTime;
+      [392, 330, 262].forEach((freq, i) => {
+        const osc = ac.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const g = ac.createGain();
+        envelope(g, 0.14, 0.01, 0.1, 0.28, t + i * 0.15);
+        osc.connect(g); g.connect(ac.destination);
+        osc.start(t + i * 0.15); osc.stop(t + i * 0.15 + 0.45);
+      });
+    },
+
+    toggleMute() {
+      muted = !muted;
+      return muted;
+    },
+    isMuted() { return muted; },
+  };
+
+  return SFX;
+})();
+
+// ── MUTE TOGGLE ──
+function toggleMute() {
+  const muted = Audio.toggleMute();
+  const btn = document.getElementById('btn-mute');
+  if (btn) btn.textContent = muted ? '🔇 Muted' : '🔊 Sound On';
+}
+
+// ── QUICK PLAY ──
+// One-tap solo game: 2 seats, auto-matched AI based on player level, straight to game.
+// Uses a real saved profile (first one found, or creates one) so XP and level apply.
+let lastGameWasQuickPlay = false;
+let quickPlayProfileId = null; // remembered across rematches
+
+function quickPlay() {
+  const profiles = loadProfiles();
+
+  // On rematch, skip all prompts and reuse the same profile
+  if (lastGameWasQuickPlay && quickPlayProfileId) {
+    const prof = getProfile(quickPlayProfileId);
+    if (prof) { _startQuickPlayWithProfile(prof); return; }
+  }
+
+  if (profiles.length > 0) {
+    // Profiles exist — if only one, use it directly; if multiple, let them pick
+    if (profiles.length === 1) {
+      _startQuickPlayWithProfile(profiles[0]);
+    } else {
+      _quickPlayPickProfile(profiles);
+    }
+  } else {
+    // No profiles yet — ask for a name and create one
+    showInputModal('Quick Play', 'Enter your name to create a profile:', name => {
+      if (name === null) return;
+      const profileName = (name && name.trim()) ? name.trim() : 'Player';
+      const prof = newProfile(profileName);
+      const all = loadProfiles();
+      all.push(prof);
+      saveProfiles(all);
+      _startQuickPlayWithProfile(prof);
+    }, '⚡ Play →');
+  }
+}
+
+function _quickPlayPickProfile(profiles) {
+  // Simple picker modal when multiple profiles exist
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  const chips = profiles.map(p => {
+    ensureLevelFields(p);
+    const lv = xpToLevel(p.xp);
+    const br = levelBracket(lv);
+    return `<div onclick="event.stopPropagation();_qpSelectProfile('${p.id}',this.closest('.modal-overlay'))"
+      style="background:var(--panel2);border:1.5px solid #333;border-radius:8px;padding:10px 16px;
+             cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:8px;"
+      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='#333'">
+      <span style="font-size:24px;">${p.avatar || '🎱'}</span>
+      <div>
+        <div style="font-weight:600;">${p.name}</div>
+        <span class="level-badge ${br.css}">LV ${lv} · ${br.label}</span>
+      </div>
+    </div>`;
+  }).join('');
+  m.innerHTML = `<div class="modal" style="max-width:340px;">
+    <h3>Who's playing?</h3>
+    <div style="margin:16px 0;">${chips}</div>
+    <div class="modal-btns">
+      <button class="btn btn-outline btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function _qpSelectProfile(id, modalEl) {
+  if (modalEl) modalEl.remove();
+  const prof = getProfile(id);
+  if (prof) _startQuickPlayWithProfile(prof);
+}
+
+function _startQuickPlayWithProfile(prof) {
+  lastGameWasQuickPlay = true;
+  quickPlayProfileId = prof.id;
+  flowPlayerCount = 2;
+  guestProfile    = null;
+  selectedProfiles = [prof];
+  flowHumanCount  = 1;
+  flowAICount     = 1;
+  selectedAIIds   = [];
+  autoSelectAI();
+  startGame();
+}
+
+function playAgain() {
+  if (lastGameWasQuickPlay) {
+    quickPlay();
+  } else {
+    showScreen('player-count');
+  }
+}
+
+
+const AI_ROSTER = [
+  // EASY TIER
+  {
+    id: 'remy',     name: 'Rookie Remy',    avatar: '🐣', tier: 'easy',
+    trait: 'Nervous starter.\nMisses a lot.',
+    aimNoise: 0.38, powerMin: 0.2, powerMax: 0.6, smartness: 0.15,
+    color: '#2ecc71'
+  },
+  {
+    id: 'nelly',    name: 'Nervous Nelly',  avatar: '😰', tier: 'easy',
+    trait: 'Shakes under\npressure.',
+    aimNoise: 0.42, powerMin: 0.15, powerMax: 0.55, smartness: 0.1,
+    color: '#2ecc71'
+  },
+  {
+    id: 'clumsy',   name: 'Clumsy Claude',  avatar: '🤡', tier: 'easy',
+    trait: 'Loves the game,\nhates the rules.',
+    aimNoise: 0.45, powerMin: 0.25, powerMax: 0.9, smartness: 0.05,
+    color: '#2ecc71'
+  },
+  // MEDIUM TIER
+  {
+    id: 'sam',      name: 'Steady Sam',     avatar: '😎', tier: 'medium',
+    trait: 'Consistent.\nRarely rattled.',
+    aimNoise: 0.18, powerMin: 0.3, powerMax: 0.75, smartness: 0.5,
+    color: '#f39c12'
+  },
+  {
+    id: 'carmen',   name: 'Cool Carmen',    avatar: '💅', tier: 'medium',
+    trait: 'Style points\nover everything.',
+    aimNoise: 0.2, powerMin: 0.35, powerMax: 0.8, smartness: 0.45,
+    color: '#f39c12'
+  },
+  {
+    id: 'barry',    name: 'Bar Champ Barry', avatar: '🍺', tier: 'medium',
+    trait: 'Pub legend.\nCrumbles in finals.',
+    aimNoise: 0.22, powerMin: 0.4, powerMax: 0.85, smartness: 0.4,
+    color: '#f39c12'
+  },
+  // HARD TIER
+  {
+    id: 'vince',    name: 'Shark Vince',    avatar: '🦈', tier: 'hard',
+    trait: 'Ice in his veins.\nClinical finish.',
+    aimNoise: 0.04, powerMin: 0.4, powerMax: 0.9, smartness: 0.9,
+    color: '#e74c3c'
+  },
+  {
+    id: 'iris',     name: 'Ice Queen Iris', avatar: '👑', tier: 'hard',
+    trait: 'Precision + poise.\nNever double-fouls.',
+    aimNoise: 0.05, powerMin: 0.45, powerMax: 0.85, smartness: 0.92,
+    color: '#e74c3c'
+  },
+  {
+    id: 'prof',     name: 'The Professor',  avatar: '🎓', tier: 'hard',
+    trait: 'Calculates every\nangle twice.',
+    aimNoise: 0.03, powerMin: 0.35, powerMax: 0.8, smartness: 0.95,
+    color: '#e74c3c'
+  },
+];
+
+// ── FLOW STATE ──
+let flowPlayerCount  = 0;   // total seats at the table
+let flowHumanCount   = 0;   // human players
+let flowAICount      = 0;   // AI slots to fill
+let selectedAIIds    = [];  // AI ids chosen for this game
+let guestProfile     = null; // set when guest mode chosen
+
+// ── CUE STICK SKINS ──
+const CUE_SKINS = [
+  { id:'classic',    name:'Classic Oak',      price:0,   color:'#8B4513', tip:'#f0e6d3', owned:true,  preview:'🪵' },
+  { id:'ebony',      name:'Ebony Pro',         price:80,  color:'#1a0a00', tip:'#c8a87a', owned:false, preview:'🖤' },
+  { id:'maple',      name:'Maple Championship',price:120, color:'#d4a55a', tip:'#fff8ee', owned:false, preview:'🍁' },
+  { id:'carbon',     name:'Carbon Fiber',      price:200, color:'#1c1c1c', tip:'#00e5ff', owned:false, preview:'⚡' },
+  { id:'rosewood',   name:'Rosewood Deluxe',   price:150, color:'#6b1f1f', tip:'#f5d6a0', owned:false, preview:'🌹' },
+  { id:'ivory',      name:'Ivory Grand',       price:250, color:'#f5f0e0', tip:'#c9a84c', owned:false, preview:'🦴' },
+  { id:'neon_blue',  name:'Neon Blue',         price:180, color:'#003366', tip:'#00aaff', owned:false, preview:'💙' },
+  { id:'gold',       name:'24K Gold',           price:500, color:'#c9a84c', tip:'#fff0a0', owned:false, preview:'✨' },
+];
+
+// ── TABLE FELT SKINS ──
+const FELT_SKINS = [
+  { id:'classic_green', name:'Classic Green',  price:0,   color:'#0a3d1a', owned:true,  preview:'🟩' },
+  { id:'midnight_blue', name:'Midnight Blue',  price:100, color:'#1a2a4a', owned:false, preview:'🟦' },
+  { id:'burgundy',      name:'Burgundy',        price:100, color:'#5c1a1a', owned:false, preview:'🟥' },
+  { id:'royal_purple',  name:'Royal Purple',    price:150, color:'#2d1a4a', owned:false, preview:'🟣' },
+  { id:'black',         name:'Black Diamond',   price:200, color:'#111111', owned:false, preview:'⬛' },
+  { id:'teal',          name:'Tournament Teal', price:120, color:'#1a4a45', owned:false, preview:'🩵' },
+];
+
+// ── BALL SET SKINS ──
+const BALL_SKINS = [
+  { id:'classic',   name:'Classic',        price:0,   owned:true,  preview:'🎱' },
+  { id:'crystal',   name:'Crystal',        price:150, owned:false, preview:'💎' },
+  { id:'neon',      name:'Neon Glow',      price:180, owned:false, preview:'🌈' },
+  { id:'gold_set',  name:'Gold Edition',   price:300, owned:false, preview:'🌟' },
+  { id:'galaxy',    name:'Galaxy',         price:250, owned:false, preview:'🌌' },
+];
+
+// ── COIN PACKAGES ──
+const COIN_PACKAGES = [
+  { coins:50,   price:'$0.99', label:'Starter Pack',   badge:null },
+  { coins:150,  price:'$1.99', label:'Regular Pack',   badge:null },
+  { coins:400,  price:'$4.99', label:'Value Pack',     badge:'BEST VALUE' },
+  { coins:1000, price:'$9.99', label:'Premium Pack',   badge:'MOST POPULAR' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// LEVEL / XP SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+
+const MAX_LEVEL = 20;
+const XP_PER_WIN = 30;
+
+// Cumulative XP required to *reach* each level (index 0 = L1 threshold = 0)
+const LEVEL_XP_TABLE = [
+     0,  // L1
+    30,  // L2
+    70,  // L3
+   120,  // L4
+   180,  // L5
+   260,  // L6  ← Amateur bracket, power ball table spawns unlock
+   360,  // L7
+   480,  // L8
+   620,  // L9
+   780,  // L10
+   970,  // L11 ← Professional bracket
+  1200,  // L12
+  1480,  // L13
+  1810,  // L14
+  2200,  // L15
+  2660,  // L16
+  3200,  // L17
+  3840,  // L18
+  4600,  // L19
+  5500,  // L20
+];
+
+function xpToLevel(xp) {
+  let lv = 1;
+  for (let i = 1; i < LEVEL_XP_TABLE.length; i++) {
+    if ((xp || 0) >= LEVEL_XP_TABLE[i]) lv = i + 1; else break;
+  }
+  return Math.min(lv, MAX_LEVEL);
+}
+function xpForLevel(lv) {
+  return LEVEL_XP_TABLE[Math.min(lv - 1, LEVEL_XP_TABLE.length - 1)];
+}
+function xpProgress(xp) {
+  const lv = xpToLevel(xp);
+  if (lv >= MAX_LEVEL) return 1;
+  const base = xpForLevel(lv), next = xpForLevel(lv + 1);
+  return Math.min(1, ((xp || 0) - base) / (next - base));
+}
+function levelBracket(lv) {
+  if (lv <= 5)  return { label:'Rookie',       css:'',     tier:'easy'   };
+  if (lv <= 10) return { label:'Amateur',       css:'mid',  tier:'medium' };
+  return              { label:'Professional', css:'elite',tier:'hard'   };
+}
+// Aim line/ghost config by level — higher level = shorter line, dimmer ghost
+function aimConfig(lv) {
+  if (lv <= 5)  return { lineOpacity:0.55, lineLength:1.00, ghostOpacity:0.42 };
+  if (lv <= 7)  return { lineOpacity:0.40, lineLength:0.80, ghostOpacity:0.28 };
+  if (lv <= 10) return { lineOpacity:0.28, lineLength:0.60, ghostOpacity:0.16 };
+  if (lv <= 14) return { lineOpacity:0.18, lineLength:0.40, ghostOpacity:0.08 };
+  return              { lineOpacity:0.10, lineLength:0.22, ghostOpacity:0.00 };
+}
+// Ensure old profiles get the new fields without breaking anything
+function ensureLevelFields(profile) {
+  if (profile.xp === undefined) profile.xp = 0;
+  if (!profile.pbInventory) profile.pbInventory = {};
+  // Backfill any missing slots (handles old profiles that predate new power balls)
+  const slots = ['freeze','ghost','magnet','multiball','powershot','sniper','decoy','blackhole'];
+  slots.forEach(k => { if (profile.pbInventory[k] === undefined) profile.pbInventory[k] = 0; });
+}
+// Award XP; return { newLevel, leveledUp, oldLevel }
+function awardXP(profile, amount) {
+  ensureLevelFields(profile);
+  const oldLevel = xpToLevel(profile.xp);
+  profile.xp = (profile.xp || 0) + amount;
+  const newLevel = xpToLevel(profile.xp);
+  return { newLevel, leveledUp: newLevel > oldLevel, oldLevel };
+}
+// Level of the first human player in the current game setup
+function humanGameLevel() {
+  if (guestProfile) return 1;
+  const p = selectedProfiles[0];
+  if (!p) return 1;
+  const fresh = getProfile(p.id) || p;
+  ensureLevelFields(fresh);
+  return xpToLevel(fresh.xp);
+}
+
+// ── Power ball shop items (purchasable to inventory) ──
+const POWERBALL_SHOP_DEFS = [
+  { id:'freeze',    name:'Freeze',     icon:'❄️', price:25, desc:'Opponent loses their next turn.' },
+  { id:'ghost',     name:'Ghost Ball', icon:'👻', price:30, desc:'Your cue passes through one ball on your next shot.' },
+  { id:'magnet',    name:'Magnet',     icon:'🧲', price:35, desc:'Pull a random opponent ball toward a pocket.' },
+  { id:'multiball', name:'Multiball',  icon:'🎱', price:20, desc:'Earn an extra turn regardless of outcome.' },
+  { id:'powershot', name:'Power Shot', icon:'⚡', price:30, desc:'Your next shot fires at double speed.' },
+  { id:'sniper',    name:'Sniper',     icon:'🔭', price:40, desc:'Perfect full aim line for your next shot — ignores level.' },
+  { id:'decoy',     name:'Decoy',      icon:'🎭', price:35, desc:'Spawn 2 fake balls in opponent\'s group — they score nothing.' },
+  { id:'blackhole', name:'Black Hole', icon:'🕳️', price:45, desc:'Gravity well drags nearby balls toward it for 3 seconds.' },
+];
+
+function openShopInGame() {
+  // Stub — full in-game shop is a future feature
+  showModal('Shop', 'Visit the Shop from the main menu to buy items and power balls before your next game.');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PROFILE / ECONOMY SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function loadProfiles() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!verifyChecksum(data)) {
+      console.warn('RR: profile checksum mismatch — re-stamping');
+      stampChecksum(data);
+      saveProfiles(data);
+    }
+    return data;
+  } catch(e) { return []; }
+}
+
+function saveProfiles(profiles) {
+  stampChecksum(profiles);
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+}
+
+function computeChecksum(profiles) {
+  const str = profiles.map(p =>
+    `${p.id}|${p.name}|${p.paidCoins}|${(p.ownedCues||[]).join(',')}|${(p.ownedFelts||[]).join(',')}|${(p.ownedBalls||[]).join(',')}`
+  ).join('::');
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(31, h) + str.charCodeAt(i) | 0; }
+  return (h >>> 0).toString(16);
+}
+function stampChecksum(profiles) { profiles._cs = computeChecksum(profiles); }
+function verifyChecksum(profiles) {
+  if (!profiles._cs) return true;
+  return profiles._cs === computeChecksum(profiles);
+}
+
+function newProfile(name) {
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    name: name.trim(),
+    avatar: ALL_AVATARS[Math.floor(Math.random() * ALL_AVATARS.length)],
+    gamesPlayed: 0,
+    gamesWon: 0,
+    earnedCoins: 10,
+    paidCoins: 0,
+    earnedLedger: [{ amount:10, ts:Date.now(), day:todayKey() }],
+    todayEarned: 0,
+    todayKey: todayKey(),
+    ownedCues:  ['classic'],
+    activeCue:  'classic',
+    ownedFelts: ['classic_green'],
+    activeFelt: 'classic_green',
+    ownedBalls: ['classic'],
+    activeBalls:'classic',
+    xp: 0,
+    pbInventory: { freeze:0, ghost:0, magnet:0, multiball:0, powershot:0, sniper:0, decoy:0, blackhole:0 },
+  };
+}
+
+function getProfile(id) { return loadProfiles().find(p => p.id === id) || null; }
+
+function saveProfile(profile) {
+  const profiles = loadProfiles();
+  const idx = profiles.findIndex(p => p.id === profile.id);
+  if (idx >= 0) profiles[idx] = profile;
+  else profiles.push(profile);
+  saveProfiles(profiles);
+}
+
+function deleteProfileById(id) {
+  const profiles = loadProfiles().filter(p => p.id !== id);
+  saveProfiles(profiles);
+}
+
+function expireEarnedCoins(profile) {
+  const cutoff = Date.now() - EARN_EXPIRY_DAYS * 86400000;
+  const before = profile.earnedCoins || 0;
+  profile.earnedLedger = (profile.earnedLedger || []).filter(e => e.ts >= cutoff);
+  profile.earnedCoins = profile.earnedLedger.reduce((s,e) => s + e.amount, 0);
+  if (profile.earnedCoins < 0) profile.earnedCoins = 0;
+}
+
+function resetDailyIfNeeded(profile) {
+  if (profile.todayKey !== todayKey()) {
+    profile.todayEarned = 0;
+    profile.todayKey = todayKey();
+  }
+}
+
+function totalCoins(profile) {
+  return (profile.earnedCoins || 0) + (profile.paidCoins || 0);
+}
+
+function spendCoins(profile, amount) {
+  let rem = amount;
+  // spend earned first
+  if (profile.earnedCoins >= rem) { profile.earnedCoins -= rem; rem = 0; }
+  else { rem -= profile.earnedCoins; profile.earnedCoins = 0; }
+  if (rem > 0) {
+    if (profile.paidCoins >= rem) { profile.paidCoins -= rem; rem = 0; }
+    else { profile.paidCoins = 0; rem -= profile.paidCoins; }
+  }
+  // trim ledger proportionally (approximate)
+  profile.earnedLedger = [];
+  if (profile.earnedCoins > 0) {
+    profile.earnedLedger.push({ amount: profile.earnedCoins, ts: Date.now(), day: todayKey() });
+  }
+}
+
+function awardCoins(profile, amount) {
+  resetDailyIfNeeded(profile);
+  const canEarn = Math.max(0, DAILY_EARN_CAP - (profile.todayEarned || 0));
+  const actual = Math.min(amount, canEarn);
+  if (actual > 0) {
+    profile.earnedCoins = (profile.earnedCoins || 0) + actual;
+    profile.todayEarned = (profile.todayEarned || 0) + actual;
+    profile.earnedLedger = profile.earnedLedger || [];
+    profile.earnedLedger.push({ amount: actual, ts: Date.now(), day: todayKey() });
+  }
+  return actual;
+}
+
+// ── IMPORT / EXPORT ──
+function exportAllProfiles() {
+  const profiles = loadProfiles().filter(p => p.id);
+  const blob = new Blob([JSON.stringify(profiles, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `rr_profiles_${Date.now()}.json`;
+  a.click();
+}
+
+function importProfile() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        const arr = Array.isArray(data) ? data : [data];
+        const profiles = loadProfiles();
+        arr.forEach(p => {
+          if (!p.id || !p.name) return;
+          const idx = profiles.findIndex(x => x.id === p.id);
+          if (idx >= 0) profiles[idx] = p; else profiles.push(p);
+        });
+        saveProfiles(profiles);
+        renderProfileGrid();
+        showModal('Import Complete', `${arr.length} profile(s) imported successfully.`);
+      } catch(e) { showModal('Import Failed', 'Could not read profile file.'); }
+    };
+    r.readAsText(file);
+  };
+  inp.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (name === 'title') {
+    document.getElementById('screen-title').classList.add('active');
+  } else if (name === 'player-count') {
+    document.getElementById('screen-player-count').classList.add('active');
+    renderPlayerCountScreen();
+  } else if (name === 'profiles') {
+    document.getElementById('screen-profiles').classList.add('active');
+    renderProfileGrid();
+    renderProfileScreenContext();
+  } else if (name === 'ai-roster') {
+    document.getElementById('screen-ai-roster').classList.add('active');
+    renderAIRoster();
+  } else if (name === 'game') {
+    document.getElementById('screen-game').classList.add('active');
+  } else if (name === 'shop-solo') {
+    document.getElementById('screen-shop-solo').classList.add('active');
+    renderShop('solo');
+  } else if (name === 'end') {
+    document.getElementById('screen-end').classList.add('active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PLAYER COUNT SCREEN
+// ═══════════════════════════════════════════════════════════════════
+
+function renderPlayerCountScreen() {
+  // Reset flow state when returning to count screen
+  selectedProfiles = [];
+  selectedAIIds    = [];
+  guestProfile     = null;
+  flowPlayerCount  = 0;
+  document.getElementById('btn-count-next').disabled = true;
+  document.querySelectorAll('.count-card').forEach(c => c.classList.remove('selected'));
+}
+
+function selectPlayerCount(n) {
+  flowPlayerCount = n;
+  document.querySelectorAll('.count-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.count-card')[n - 2].classList.add('selected'); // cards start at 2
+  document.getElementById('btn-count-next').disabled = false;
+}
+
+function goToProfilesFromCount() {
+  if (!flowPlayerCount) return;
+  lastGameWasQuickPlay = false;
+  selectedProfiles = [];
+  selectedAIIds    = [];
+  guestProfile     = null;
+  showScreen('profiles');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PROFILE SCREEN CONTEXT
+// ═══════════════════════════════════════════════════════════════════
+
+function renderProfileScreenContext() {
+  const title    = document.getElementById('profile-screen-title');
+  const sub      = document.getElementById('profile-screen-sub');
+  const info     = document.getElementById('profile-ai-fill-info');
+  const guestBtn = document.getElementById('btn-guest');
+  const aiSlots  = flowPlayerCount - 1; // minimum 1 human, rest can be AI
+
+  if (flowPlayerCount === 2) {
+    title.textContent = 'Who\'s Playing?';
+    sub.textContent   = '2 seats total — pick a profile or play as guest';
+    info.style.display = 'block';
+    info.innerHTML = `Select <strong>1 profile</strong> or use Guest Mode. Empty seat filled by AI.`;
+    guestBtn.style.display = 'inline-flex';
+  } else if (flowPlayerCount === 4) {
+    title.textContent = 'Select Players';
+    sub.textContent   = '4 seats total — pick profiles, AI fills any you skip';
+    info.style.display = 'block';
+    info.innerHTML = `Select up to <strong>4 profiles</strong>. Use Guest Mode to play yourself without a saved profile.`;
+    guestBtn.style.display = 'inline-flex';
+  } else {
+    title.textContent = 'Select Players';
+    sub.textContent   = `${flowPlayerCount} seats total — pick profiles, AI fills any you skip`;
+    info.style.display = 'block';
+    info.innerHTML = `Select up to <strong>${flowPlayerCount} profiles</strong>. Use Guest Mode to play without a saved profile.`;
+    guestBtn.style.display = 'inline-flex';
+  }
+  updateProfileNextButton();
+}
+
+function updateProfileNextButton() {
+  const btn = document.getElementById('btn-play-game');
+  const humanChosen = selectedProfiles.length + (guestProfile ? 1 : 0);
+  const aiNeeded = flowPlayerCount - humanChosen;
+
+  // Need at least 1 human to proceed
+  btn.disabled = humanChosen === 0;
+  if (humanChosen > 0) {
+    btn.textContent = aiNeeded > 0 ? `🤖 Choose ${aiNeeded} AI →` : '🎱 Play';
+  } else {
+    btn.textContent = '🎱 Next';
+  }
+}
+
+function playAsGuest() {
+  showInputModal('Play as Guest', 'Enter your name:', name => {
+    if (name === null) return; // user cancelled — stay on profile screen
+    const guestName = (name && name.trim()) ? name.trim() : 'Guest';
+    guestProfile = {
+      id: 'guest_' + Date.now(),
+      name: guestName,
+      gamesPlayed: 0, gamesWon: 0,
+      earnedCoins: 0, paidCoins: 0,
+      earnedLedger: [], todayEarned: 0, todayKey: todayKey(),
+      ownedCues: ['classic'],  activeCue:  'classic',
+      ownedFelts: ['classic_green'], activeFelt: 'classic_green',
+      ownedBalls: ['classic'], activeBalls: 'classic',
+      isGuest: true,
+    };
+    selectedProfiles = [];
+    updateProfileNextButton();
+    renderSelectedBar();
+    proceedFromProfiles();
+  }, 'Play →');
+}
+
+function proceedFromProfiles() {
+  const humanChosen = selectedProfiles.length + (guestProfile ? 1 : 0);
+  if (humanChosen === 0) return;
+  flowHumanCount = humanChosen;
+  // AI fills whatever seats the humans don't take
+  flowAICount = flowPlayerCount - humanChosen;
+  selectedAIIds = [];
+
+  if (flowAICount > 0) {
+    autoSelectAI();
+    showScreen('ai-roster');
+  } else {
+    startGame();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AI ROSTER SCREEN
+// ═══════════════════════════════════════════════════════════════════
+
+function humanSkillTier() {
+  return levelBracket(humanGameLevel()).tier; // 'easy' | 'medium' | 'hard'
+}
+
+function autoSelectAI() {
+  const tier = humanSkillTier();
+  const pool = AI_ROSTER.filter(a => a.tier === tier);
+  // Shuffle pool for variety — don't always pick the same AI
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  selectedAIIds = [];
+  for (let i = 0; i < flowAICount; i++) {
+    selectedAIIds.push(shuffled[i % shuffled.length].id);
+  }
+}
+
+function renderAIRoster() {
+  const sub = document.getElementById('ai-roster-sub');
+  const allFilled = selectedAIIds.length >= flowAICount;
+  sub.textContent = allFilled
+    ? `Your opponent${flowAICount > 1 ? 's are' : ' is'} ready — swap any you want, or hit Play`
+    : `Pick ${flowAICount - selectedAIIds.length} more AI opponent${flowAICount - selectedAIIds.length > 1 ? 's' : ''}`;
+
+  const tiersDiv = document.getElementById('ai-roster-tiers');
+  const tiers = ['easy', 'medium', 'hard'];
+  const tierLabels = { easy: '🟢 Easy', medium: '🟡 Medium', hard: '🔴 Hard' };
+  const recommendedTier = humanSkillTier();
+
+  tiersDiv.innerHTML = tiers.map(tier => {
+    const chars = AI_ROSTER.filter(a => a.tier === tier);
+    const isRec = tier === recommendedTier;
+    return `
+      <div class="ai-tier">
+        <div class="ai-tier-label ${tier}">${tierLabels[tier]}${isRec ? ' ★ Recommended' : ''}</div>
+        <div class="ai-cards-row">
+          ${chars.map(ai => `
+            <div class="ai-card ${selectedAIIds.includes(ai.id) ? 'selected-ai' : ''}"
+                 id="aicard-${ai.id}" onclick="toggleAISelect('${ai.id}')">
+              <div class="ai-card-avatar">${ai.avatar}</div>
+              <div class="ai-card-name">${ai.name}</div>
+              <div class="ai-card-trait">${ai.trait.replace(/\n/g, '<br>')}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  renderAISlotIndicator();
+  updateAIConfirmButton();
+}
+
+function toggleAISelect(id) {
+  const idx = selectedAIIds.indexOf(id);
+  if (idx >= 0) {
+    // Deselect — only if we have more than the needed count
+    selectedAIIds.splice(idx, 1);
+  } else {
+    if (selectedAIIds.length >= flowAICount) {
+      // Swap last selected with new pick
+      selectedAIIds.pop();
+    }
+    selectedAIIds.push(id);
+  }
+  // Re-render cards
+  document.querySelectorAll('.ai-card').forEach(c => c.classList.remove('selected-ai'));
+  selectedAIIds.forEach(aid => {
+    const el = document.getElementById(`aicard-${aid}`);
+    if (el) el.classList.add('selected-ai');
+  });
+  renderAISlotIndicator();
+  updateAIConfirmButton();
+}
+
+function renderAISlotIndicator() {
+  const ind = document.getElementById('ai-slot-indicator');
+  const slots = Array.from({length: flowAICount}, (_, i) => {
+    const ai = AI_ROSTER.find(a => a.id === selectedAIIds[i]);
+    if (ai) {
+      return `<div class="ai-slot-tag ${ai.tier}">
+        <span class="ai-badge ${ai.tier}"></span>${ai.avatar} ${ai.name}
+      </div>`;
+    }
+    return `<div class="ai-slot-tag" style="border:1px dashed #444;color:var(--text-dim);">Empty slot</div>`;
+  });
+  ind.innerHTML = slots.join('');
+}
+
+function updateAIConfirmButton() {
+  const btn = document.getElementById('btn-ai-confirm');
+  btn.disabled = selectedAIIds.length < flowAICount;
+  btn.textContent = selectedAIIds.length >= flowAICount ? '🎱 Play!' : `Pick ${flowAICount - selectedAIIds.length} more`;
+}
+
+function confirmAIRoster() {
+  if (selectedAIIds.length < flowAICount) return;
+  startGame();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PROFILE GRID
+// ═══════════════════════════════════════════════════════════════════
+
+let selectedProfiles = [];
+
+function renderProfileGrid() {
+  const grid = document.getElementById('profile-grid');
+  const profiles = loadProfiles();
+  grid.innerHTML = '';
+
+  // If no profiles exist, make Guest Mode the hero action
+  const guestBtn = document.getElementById('btn-guest');
+  if (profiles.length === 0 && guestBtn) {
+    guestBtn.className = 'btn'; // upgrade to full gold button
+    guestBtn.style.display = 'inline-flex';
+  } else if (guestBtn) {
+    guestBtn.className = 'btn btn-outline btn-sm';
+  }
+
+  profiles.forEach((p, i) => {
+    const sel    = selectedProfiles.some(s => s.id === p.id);
+    const avatar = p.avatar || ALL_AVATARS[i % ALL_AVATARS.length];
+    ensureLevelFields(p);
+    const lv  = xpToLevel(p.xp);
+    const pct = Math.round(xpProgress(p.xp) * 100);
+    const br  = levelBracket(lv);
+    const div = document.createElement('div');
+    div.className = 'profile-card' + (sel ? ' selected' : '');
+    div.innerHTML = `
+      <button class="profile-delete" onclick="event.stopPropagation();deleteProfile('${p.id}')">✕</button>
+      <div class="profile-avatar" title="Click to change avatar" onclick="event.stopPropagation();pickAvatar('${p.id}')" style="cursor:pointer;">${avatar}</div>
+      <div class="profile-name">${p.name}</div>
+      <div style="margin:3px 0;"><span class="level-badge ${br.css}">LV ${lv} · ${br.label}</span></div>
+      <div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${pct}%"></div></div>
+      <div class="profile-coins">⬤ ${totalCoins(p)} coins</div>
+      <div class="profile-games">${p.gamesPlayed || 0} games · ${p.gamesWon || 0} wins</div>
+    `;
+    div.onclick = () => toggleProfileSelect(p);
+    grid.appendChild(div);
+  });
+
+  // Add new
+  if (profiles.length < MAX_PROFILES) {
+    const div = document.createElement('div');
+    div.className = 'profile-card add-new';
+    div.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">＋</div><div>New Player</div>`;
+    div.onclick = () => promptNewProfile();
+    grid.appendChild(div);
+  }
+
+  renderSelectedBar();
+}
+
+function pickAvatar(profileId) {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  const btns = ALL_AVATARS.map(a =>
+    `<button onclick="setAvatar('${profileId}','${a}',this.closest('.modal-overlay'))"
+      style="font-size:28px;background:var(--panel2);border:1.5px solid #333;border-radius:8px;
+      padding:8px;cursor:pointer;transition:all 0.1s;line-height:1;"
+      onmouseover="this.style.borderColor='var(--gold)'"
+      onmouseout="this.style.borderColor='#333'">${a}</button>`
+  ).join('');
+  m.innerHTML = `<div class="modal" style="max-width:380px;">
+    <h3>Choose Avatar</h3>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0;">${btns}</div>
+    <div class="modal-btns"><button class="btn btn-outline btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function setAvatar(profileId, avatar, modalEl) {
+  const prof = getProfile(profileId);
+  if (prof) { prof.avatar = avatar; saveProfile(prof); }
+  if (modalEl) modalEl.remove();
+  renderProfileGrid();
+}
+
+function toggleProfileSelect(p) {
+  const idx = selectedProfiles.findIndex(s => s.id === p.id);
+  if (idx >= 0) {
+    selectedProfiles.splice(idx, 1);
+  } else if (selectedProfiles.length < flowPlayerCount) {
+    selectedProfiles.push(p);
+  }
+  renderProfileGrid();
+}
+
+function renderSelectedBar() {
+  const bar = document.getElementById('selected-players-bar');
+  bar.innerHTML = selectedProfiles.map((p,i) =>
+    `<div class="selected-tag" style="border-color:${PLAYER_COLORS[i]}">
+      <span style="color:${PLAYER_COLORS[i]}">${p.name}</span>
+      <button onclick="removeSelected('${p.id}')">✕</button>
+    </div>`
+  ).join('');
+  updateProfileNextButton();
+}
+
+function removeSelected(id) {
+  selectedProfiles = selectedProfiles.filter(p => p.id !== id);
+  renderProfileGrid();
+}
+
+function promptNewProfile() {
+  showInputModal('New Player', 'Enter a name:', name => {
+    if (!name || !name.trim()) return;
+    const profiles = loadProfiles();
+    if (profiles.length >= MAX_PROFILES) return;
+    profiles.push(newProfile(name));
+    saveProfiles(profiles);
+    renderProfileGrid();
+  });
+}
+
+function deleteProfile(id) {
+  showConfirmModal('Delete Profile', 'Are you sure? This cannot be undone.', () => {
+    deleteProfileById(id);
+    selectedProfiles = selectedProfiles.filter(p => p.id !== id);
+    renderProfileGrid();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SHOP
+// ═══════════════════════════════════════════════════════════════════
+
+let shopContext = 'solo'; // 'solo' or 'game'
+let shopActiveTab = 'cues';
+let shopPlayerProfile = null;
+
+function renderShop(ctx) {
+  shopContext = ctx;
+  shopActiveTab = 'cues';
+  // Reset tab buttons
+  document.querySelectorAll('.shop-tab').forEach((t,i) => {
+    t.classList.toggle('active', i === 0);
+  });
+  if (ctx === 'solo') {
+    renderShopProfileBar();
+    renderShopTab('cues', 'solo');
+  }
+}
+
+// ── Profile selector bar inside the shop ──
+function renderShopProfileBar() {
+  const bar = document.getElementById('shop-profile-bar');
+  if (!bar) return;
+  const profiles = loadProfiles();
+
+  if (profiles.length === 0) {
+    bar.innerHTML = `<span style="font-size:12px;color:var(--text-dim);">No profiles yet —</span>
+      <button class="shop-profile-chip create" onclick="shopCreateProfile()">＋ Create Profile</button>`;
+    shopPlayerProfile = null;
+    return;
+  }
+
+  // Auto-select first profile if none selected or current no longer exists
+  if (!shopPlayerProfile || !profiles.find(p => p.id === shopPlayerProfile.id)) {
+    shopPlayerProfile = profiles[0];
+  }
+
+  const chips = profiles.map(p => {
+    const active = shopPlayerProfile && p.id === shopPlayerProfile.id;
+    ensureLevelFields(p);
+    const lv = xpToLevel(p.xp);
+    return `<div class="shop-profile-chip${active?' active':''}" onclick="shopSelectProfile('${p.id}')">
+      <span>${p.avatar || '🎱'}</span>
+      <span>${p.name}</span>
+      <span class="level-badge" style="margin-left:2px;">LV ${lv}</span>
+    </div>`;
+  }).join('');
+
+  const walletTxt = shopPlayerProfile
+    ? `<span style="font-size:12px;color:var(--gold);margin-left:4px;">⬤ ${totalCoins(shopPlayerProfile)} coins</span>`
+    : '';
+
+  bar.innerHTML = chips + walletTxt;
+}
+
+function shopSelectProfile(id) {
+  const prof = getProfile(id);
+  if (!prof) return;
+  shopPlayerProfile = prof;
+  renderShopProfileBar();
+  renderShopTab(shopActiveTab, shopContext);
+}
+
+function shopCreateProfile() {
+  showInputModal('New Player', 'Enter a name:', name => {
+    if (!name || !name.trim()) return;
+    const profiles = loadProfiles();
+    if (profiles.length >= MAX_PROFILES) { showModal('Full', 'Maximum profiles reached.'); return; }
+    const p = newProfile(name);
+    profiles.push(p);
+    saveProfiles(profiles);
+    shopPlayerProfile = p;
+    renderShopProfileBar();
+    renderShopTab(shopActiveTab, shopContext);
+  });
+}
+
+function shopTab(tab, el) {
+  shopActiveTab = tab;
+  document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderShopTab(tab, shopContext);
+}
+
+function renderShopTab(tab, ctx) {
+  const suffix = ctx === 'solo' ? '-solo' : '-game';
+  const grid    = document.getElementById(`shop-grid${suffix}`);
+  const coinDiv = document.getElementById(`shop-coins${suffix}`);
+  const pbDiv   = document.getElementById(`shop-powerballs${suffix}`);
+
+  // Hide all panels, show correct one
+  if (grid)    { grid.style.display    = 'none'; }
+  if (coinDiv) { coinDiv.style.display = 'none'; }
+  if (pbDiv)   { pbDiv.style.display   = 'none'; }
+
+  const profile = shopPlayerProfile;
+
+  // ── No profile: show a prompt instead of items ──
+  if (!profile && tab !== 'coins') {
+    if (grid) {
+      grid.style.display = 'flex';
+      grid.style.flexDirection = 'column';
+      grid.style.alignItems = 'center';
+      grid.style.padding = '24px';
+      grid.innerHTML = `<p style="color:var(--text-dim);font-size:14px;text-align:center;margin-bottom:16px;">
+        Select a profile above to view and purchase items.
+      </p>
+      <button class="btn btn-outline" onclick="shopCreateProfile()">＋ Create Profile</button>`;
+    }
+    return;
+  }
+  if (grid) { grid.style.display = 'grid'; grid.style.flexDirection = ''; grid.style.alignItems = ''; grid.style.padding = ''; }
+
+  // ── Coins tab ──
+  if (tab === 'coins') {
+    if (coinDiv) {
+      coinDiv.style.display = 'flex';
+      coinDiv.innerHTML = COIN_PACKAGES.map(pkg => `
+        <div class="coin-pkg" onclick="buyCoinPackage(${pkg.coins},'${pkg.price}')">
+          ${pkg.badge ? `<div class="pkg-badge">${pkg.badge}</div>` : ''}
+          <div class="coin-pkg-coins">⬤ ${pkg.coins}</div>
+          <div class="coin-pkg-price">${pkg.price}</div>
+          <div class="coin-pkg-label">${pkg.label}</div>
+        </div>`).join('');
+    }
+    return;
+  }
+
+  // ── Power Balls tab ──
+  if (tab === 'powerballs') {
+    if (pbDiv) {
+      pbDiv.style.display = 'block';
+      ensureLevelFields(profile);
+      const inv = profile.pbInventory;
+      const lv  = xpToLevel(profile.xp);
+      pbDiv.innerHTML = `
+        <p style="text-align:center;color:var(--text-dim);font-size:12px;margin-bottom:16px;">
+          Power balls go into your inventory and can be used during any game on your turn.<br>
+          ${lv < 6 ? `<span style="color:#f39c12;">⚠ Table spawns unlock at Level 6. You can still buy and use power balls now.</span>` : '<span style="color:#2ecc71;">✓ Table spawns active — you\'re Level 6+.</span>'}
+        </p>
+        ${POWERBALL_SHOP_DEFS.map(d => `
+          <div class="pb-shop-item">
+            <div class="pb-shop-icon">${d.icon}</div>
+            <div class="pb-shop-info">
+              <div class="pb-shop-name">${d.name}</div>
+              <div class="pb-shop-desc">${d.desc}</div>
+              <div class="pb-shop-stock">In inventory: <strong>${inv[d.id] || 0}</strong></div>
+            </div>
+            <div class="pb-shop-btns">
+              <span style="font-size:12px;color:var(--gold);">⬤ ${d.price} each</span>
+              <button class="btn btn-sm" onclick="buyPowerBall('${d.id}')">Buy</button>
+            </div>
+          </div>`).join('')}`;
+    }
+    return;
+  }
+
+  // ── Skins tabs ──
+  let items, ownedKey, activeKey;
+  if (tab === 'cues')  { items = CUE_SKINS;  ownedKey = 'ownedCues';  activeKey = 'activeCue'; }
+  if (tab === 'felt')  { items = FELT_SKINS; ownedKey = 'ownedFelts'; activeKey = 'activeFelt'; }
+  if (tab === 'balls') { items = BALL_SKINS; ownedKey = 'ownedBalls'; activeKey = 'activeBalls'; }
+  if (!items) return;
+
+  if (grid) grid.innerHTML = items.map(item => {
+    // Owned = explicitly in profile's owned array, OR it's the free classic (price 0)
+    const owned    = (profile[ownedKey] || []).includes(item.id) || item.price === 0;
+    const equipped = profile[activeKey] === item.id;
+    let cls = 'shop-item';
+    if (equipped) cls += ' equipped';
+    else if (owned) cls += ' owned';
+    const badge = equipped ? '<span class="shop-item-badge badge-equipped">Equipped</span>'
+                : owned   ? '<span class="shop-item-badge badge-owned">Owned</span>'
+                          : `<span class="shop-item-price">⬤ ${item.price}</span>`;
+    return `<div class="${cls}" onclick="shopItemClick('${item.id}','${tab}')">
+      <div class="shop-item-preview">${item.preview}</div>
+      <div class="shop-item-name">${item.name}</div>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+function shopItemClick(id, tab) {
+  const profile = shopPlayerProfile;
+  if (!profile) { showModal('No Profile', 'Select a profile above first.'); return; }
+
+  let items, ownedKey, activeKey;
+  if (tab === 'cues')  { items = CUE_SKINS;  ownedKey = 'ownedCues';  activeKey = 'activeCue'; }
+  if (tab === 'felt')  { items = FELT_SKINS; ownedKey = 'ownedFelts'; activeKey = 'activeFelt'; }
+  if (tab === 'balls') { items = BALL_SKINS; ownedKey = 'ownedBalls'; activeKey = 'activeBalls'; }
+
+  const item  = items.find(x => x.id === id);
+  const owned = (profile[ownedKey] || []).includes(id) || item.price === 0;
+
+  if (owned) {
+    // Equip it
+    profile[activeKey] = id;
+    saveProfile(profile);
+    renderShopTab(tab, shopContext);
+    return;
+  }
+
+  if (totalCoins(profile) < item.price) {
+    showModal('Not Enough Coins', `You need ⬤ ${item.price} coins to buy ${item.name}.`);
+    return;
+  }
+
+  showConfirmModal(`Buy ${item.name}`, `Purchase for ⬤ ${item.price} coins?`, () => {
+    spendCoins(profile, item.price);
+    profile[ownedKey] = profile[ownedKey] || [];
+    profile[ownedKey].push(id);
+    profile[activeKey] = id;
+    saveProfile(profile);
+    renderShopTab(tab, shopContext);
+    renderShopProfileBar(); // refresh wallet display
+  });
+}
+
+function buyCoinPackage(coins, price) {
+  showModal('Purchase', `Payment for ${coins} coins (${price}) requires the in-app billing system.\n\nThis will connect to Google/Apple billing when the app is published.`);
+}
+
+function buyPowerBall(pbId) {
+  const profile = shopPlayerProfile;
+  if (!profile) { showModal('No Profile', 'Select a profile above first.'); return; }
+  ensureLevelFields(profile);
+  const def = POWERBALL_SHOP_DEFS.find(d => d.id === pbId);
+  if (!def) return;
+  if (totalCoins(profile) < def.price) {
+    showModal('Not Enough Coins', `You need ⬤ ${def.price} coins to buy ${def.name}.`);
+    return;
+  }
+  showConfirmModal(`Buy ${def.icon} ${def.name}`, `Purchase 1× ${def.name} for ⬤ ${def.price} coins?\n\n${def.desc}`, () => {
+    spendCoins(profile, def.price);
+    profile.pbInventory[pbId] = (profile.pbInventory[pbId] || 0) + 1;
+    saveProfile(profile);
+    renderShopTab('powerballs', shopContext);
+    renderShopProfileBar(); // refresh wallet
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+function showModal(title, msg) {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal"><h3>${title}</h3><p>${msg}</p>
+    <div class="modal-btns"><button class="btn" onclick="this.closest('.modal-overlay').remove()">OK</button></div></div>`;
+  document.body.appendChild(m);
+}
+
+function showConfirmModal(title, msg, onYes) {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal"><h3>${title}</h3><p>${msg}</p>
+    <div class="modal-btns">
+      <button class="btn" id="myes">Yes</button>
+      <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.querySelector('#myes').onclick = () => { m.remove(); onYes(); };
+}
+
+function showInputModal(title, label, onSubmit, okLabel) {
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `<div class="modal"><h3>${title}</h3><p>${label}</p>
+    <input id="minput" maxlength="20" placeholder="Name..." />
+    <div class="modal-btns">
+      <button class="btn" id="mok">${okLabel || 'Continue'}</button>
+      <button class="btn btn-outline" id="mcancel">Cancel</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  const inp = m.querySelector('#minput');
+  inp.focus();
+  const submit = () => { m.remove(); onSubmit(inp.value); };
+  const cancel = () => { m.remove(); onSubmit(null); }; // null = cancelled
+  inp.onkeydown = e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') cancel(); };
+  m.querySelector('#mok').onclick = submit;
+  m.querySelector('#mcancel').onclick = cancel;
+}
+
+function confirmQuit() {
+  showConfirmModal('Quit Game', 'End this game and return to the menu?', () => {
+    if (G.aiThinkTimer) clearTimeout(G.aiThinkTimer);
+    if (activeReplayInterval) { clearInterval(activeReplayInterval); activeReplayInterval = null; }
+    replayRunning = false;
+    loopRunning = false;
+    const banner = document.getElementById('replay-banner');
+    if (banner) banner.style.display = 'none';
+    G = {};
+    showScreen('title');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx2d = null; // Three.js owns canvas via WebGL — 2D context removed
+const spinCanvas = document.getElementById('spinCanvas');
+const spinCtx = spinCanvas.getContext('2d');
+
+let G = {}; // game state
+
+// ── PHYSICS CONSTANTS ──
+const FRICTION = 0.985;
+const MIN_SPEED = 0.15;
+const POCKET_RADIUS = 22;
+const BALL_RADIUS = 11;
+
+// ── POWER BALLS ──
+// One spawns per rack in a random open spot. Pocketing it grants a special effect.
+const POWER_BALL_DEFS = [
+  // ── Freeze ❄️ ── Opponent loses next turn ──────────────────────────
+  {
+    id: 'freeze', name: 'Freeze', color: '#3498db', glow: '#74b9ff',
+    desc: 'Opponent loses their next turn', icon: '❄️',
+    apply(shooterIdx) {
+      const n = G.players.length;
+      for (let s = 1; s < n; s++) {
+        const idx = (shooterIdx + s) % n;
+        if (!G.players[idx].eliminated) { G.players[idx].skipTurn = true; break; }
+      }
+      showPowerBallToast('❄️ Freeze! Opponent loses a turn.');
+    }
+  },
+
+  // ── Ghost Ball 👻 ── Cue passes through ONE ball on YOUR next shot ──
+  // Fixed: flag is now tied to the activating player so it can't bleed to opponent.
+  {
+    id: 'ghost', name: 'Ghost Ball', color: '#9b59b6', glow: '#d7bde2',
+    desc: 'Your cue ball passes through one ball on your next shot', icon: '👻',
+    apply(shooterIdx) {
+      // Store WHICH player activated it — only consume on their shot
+      G.ghostBallActive   = true;
+      G.ghostBallOwner    = shooterIdx;
+      showPowerBallToast('👻 Ghost Ball! Your cue passes through one ball.');
+    }
+  },
+
+  // ── Magnet 🧲 ── Pull a random opponent ball toward nearest pocket ──
+  {
+    id: 'magnet', name: 'Magnet', color: '#e74c3c', glow: '#f1948a',
+    desc: 'Pull a random opponent ball toward the nearest pocket', icon: '🧲',
+    apply(shooterIdx) {
+      const cp = G.players[shooterIdx];
+      const opponentBalls = G.balls.filter(b => {
+        if (b.pocketed || b.isCue || b.isPowerBall) return false;
+        if (G.mode === 'cutthroat') {
+          const owner = G.players.findIndex(p => p.ctGroup && p.ctGroup.nums.includes(b.num));
+          return owner !== shooterIdx && owner >= 0;
+        }
+        // 8-ball: opponent's group. If no group yet, target any ball.
+        if (!cp.group) return true;
+        return (cp.group === 'solid') !== b.solid;
+      });
+      if (opponentBalls.length > 0) {
+        const target = opponentBalls[Math.floor(Math.random() * opponentBalls.length)];
+        const pocket = POCKETS.reduce((best, p) =>
+          Math.hypot(p.x-target.x,p.y-target.y) < Math.hypot(best.x-target.x,best.y-target.y) ? p : best
+        );
+        const dx = pocket.x - target.x, dy = pocket.y - target.y;
+        const dist = Math.hypot(dx, dy);
+        target.vx += (dx/dist) * 6;
+        target.vy += (dy/dist) * 6;
+        showPowerBallToast('🧲 Magnet! Opponent ball pulled toward pocket!');
+      } else {
+        showPowerBallToast('🧲 Magnet! No opponent balls to pull.');
+      }
+    }
+  },
+
+  // ── Multiball 🎱 ── Extra turn regardless of outcome ───────────────
+  {
+    id: 'multiball', name: 'Multiball', color: '#f39c12', glow: '#f9ca24',
+    desc: 'Earn an extra turn regardless of outcome', icon: '🎱',
+    apply(shooterIdx) {
+      G.powerBallExtraTurn = true;
+      showPowerBallToast('🎱 Multiball! Shoot again!');
+    }
+  },
+
+  // ── Power Shot ⚡ ── Next shot fires at 2× speed ───────────────────
+  {
+    id: 'powershot', name: 'Power Shot', color: '#f1c40f', glow: '#f9e94e',
+    desc: 'Your next shot fires at double speed — demolish the rack', icon: '⚡',
+    apply(shooterIdx) {
+      G.powerShotActive = true;
+      G.powerShotOwner  = shooterIdx;
+      showPowerBallToast('⚡ Power Shot! Your next shot fires at 2× speed!');
+    }
+  },
+
+  // ── Sniper 🔭 ── One turn of perfect aim assist regardless of level ─
+  {
+    id: 'sniper', name: 'Sniper', color: '#2ecc71', glow: '#55efc4',
+    desc: 'Perfect aim line for your next shot — whatever your level', icon: '🔭',
+    apply(shooterIdx) {
+      G.sniperActive = true;
+      G.sniperOwner  = shooterIdx;
+      showPowerBallToast('🔭 Sniper! Perfect aim line for your next shot!');
+    }
+  },
+
+  // ── Decoy 🎭 ── Spawn 2 fake opponent balls ──────────────────────
+  {
+    id: 'decoy', name: 'Decoy', color: '#fd79a8', glow: '#fdcfe8',
+    desc: 'Spawn 2 fake balls in your opponent\'s group — they score nothing if pocketed', icon: '🎭',
+    apply(shooterIdx) {
+      const cp = G.players[shooterIdx];
+      // Pick a color / solid-stripe to match opponent's group
+      let decoyColor = '#888888';
+      let decoySolid = false;
+      if (G.mode === 'eightball' && cp.group) {
+        decoySolid = cp.group !== 'solid'; // decoys look like opponent's type
+        decoyColor = decoySolid ? '#e74c3c' : '#3498db'; // pick a neutral-ish color
+      }
+      let placed = 0;
+      for (let attempt = 0; attempt < 60 && placed < 2; attempt++) {
+        const x = TX + TW * (0.1 + Math.random() * 0.8);
+        const y = TY + TH * (0.1 + Math.random() * 0.8);
+        const clear = G.balls.every(b => b.pocketed || Math.hypot(b.x-x, b.y-y) > BALL_RADIUS * 2.6);
+        if (clear) {
+          G.balls.push({
+            id: 900 + placed, x, y, vx: 0, vy: 0, pocketed: false,
+            isCue: false, isPowerBall: false, isDecoy: true,
+            solid: decoySolid, color: decoyColor,
+            num: decoySolid ? '?' : '?', stripe: !decoySolid,
+            decoyOwner: shooterIdx, // so we can expire them later
+          });
+          placed++;
+        }
+      }
+      // Decoys expire after opponent's next full turn
+      G.decoyTurnsLeft = 2; // counts down in endTurn
+      showPowerBallToast('🎭 Decoy! 2 fake balls placed — they score nothing if pocketed!');
+    }
+  },
+
+  // ── Black Hole 🕳️ ── Gravity well sucks nearby balls toward center ─
+  {
+    id: 'blackhole', name: 'Black Hole', color: '#2d3436', glow: '#636e72',
+    desc: 'A gravity well drags all nearby balls toward it for 3 seconds', icon: '🕳️',
+    apply(shooterIdx) {
+      // Place black hole at a random mid-table position
+      const hx = TX + TW * (0.3 + Math.random() * 0.4);
+      const hy = TY + TH * (0.25 + Math.random() * 0.5);
+      const duration = 3200;
+      G.blackHole = { x: hx, y: hy, radius: TW * 0.22, startMs: Date.now(), durationMs: duration };
+      showPowerBallToast('🕳️ Black Hole! Gravity well active for 3 seconds!');
+      // Attach visual marker ball (non-physical) — removed after duration
+      G.balls.push({
+        id: 998, x: hx, y: hy, vx: 0, vy: 0, pocketed: false,
+        isCue: false, isPowerBall: false, isBlackHoleMarker: true,
+        color: '#2d3436', num: '🕳️', solid: false, stripe: false,
+      });
+      // Auto-expire after duration — guard against game restart
+      setTimeout(() => {
+        if (!G.balls) return; // game was reset
+        G.blackHole = null;
+        const idx = G.balls.findIndex(b => b.isBlackHoleMarker);
+        if (idx >= 0) G.balls[idx].pocketed = true;
+      }, duration);
+    }
+  },
+];
+
+function showPowerBallToast(msg, duration) {
+  document.querySelectorAll('.break-toast').forEach(t => t.remove());
+  const wrap = document.getElementById('game-canvas-wrap');
+  if (!wrap) return;
+  const toast = document.createElement('div');
+  toast.className = 'break-toast';
+  toast.innerHTML = `<div class="break-grade">${msg.split(' ')[0]}</div><div>${msg.slice(msg.indexOf(' ')+1)}</div>`;
+  wrap.appendChild(toast);
+  setTimeout(() => toast.remove(), duration || 3000);
+}
+
+function spawnPowerBall() {
+  // Pick a random power ball type
+  const def = POWER_BALL_DEFS[Math.floor(Math.random() * POWER_BALL_DEFS.length)];
+  // Find a clear spot on the table
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const x = TX + TW * (0.1 + Math.random() * 0.8);
+    const y = TY + TH * (0.1 + Math.random() * 0.8);
+    const clear = G.balls.every(b => b.pocketed || Math.hypot(b.x-x, b.y-y) > BALL_RADIUS * 3);
+    if (clear) {
+      G.balls.push({
+        id: 999, x, y, vx: 0, vy: 0, pocketed: false,
+        isCue: false, isPowerBall: true, powerBallDef: def,
+        color: def.color, num: '★', solid: false, stripe: false,
+      });
+      // Show indicator in sidebar
+      const ind = document.getElementById('pball-indicator');
+      const dot = document.getElementById('pball-dot');
+      const name = document.getElementById('pball-name');
+      if (ind) {
+        ind.classList.add('active');
+        dot.style.background = def.color;
+        name.textContent = `${def.icon} ${def.name} — pocket the glowing ball: ${def.desc}`;
+      }
+      showPowerBallToast(`${def.icon} Power Ball: ${def.name}!\nPocket the glowing ball to activate: ${def.desc}`, 5000);
+      return;
+    }
+  }
+}
+
+function clearPowerBallIndicator() {
+  const ind = document.getElementById('pball-indicator');
+  if (ind) ind.classList.remove('active');
+}
+
+// ── TABLE LAYOUT ──
+let TW, TH, TX, TY; // table width/height, top-left origin on canvas
+let POCKETS = [];
+
+function calcTableLayout() {
+  const wrap = document.getElementById('game-canvas-wrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+
+  // Physics coordinate space — used for collision/pocket detection
+  const margin = 40;
+  let tw = W - margin * 2;
+  let th = tw / 2;
+  if (th > H - margin * 2) { th = H - margin * 2; tw = th * 2; }
+  TW = tw; TH = th;
+  TX = (W - TW) / 2;
+  TY = (H - TH) / 2;
+
+  const pr = POCKET_RADIUS;
+  POCKETS = [
+    { x: TX + pr,       y: TY + pr },
+    { x: TX + TW/2,     y: TY - 2 },
+    { x: TX + TW - pr,  y: TY + pr },
+    { x: TX + pr,       y: TY + TH - pr },
+    { x: TX + TW/2,     y: TY + TH + 2 },
+    { x: TX + TW - pr,  y: TY + TH - pr },
+  ];
+
+  // Sync Three.js renderer to new dimensions
+  resizeThree();
+}
+
+// ── BALL SETUP ──
+function initBalls() {
+  const balls = [];
+  // Cue ball
+  const cueBallX = TX + TW * 0.25;
+  const cueBallY = TY + TH / 2;
+  balls.push({ id:0, x:cueBallX, y:cueBallY, vx:0, vy:0, pocketed:false, isCue:true, solid:null, num:0 });
+
+  // Rack — triangle formation at 3/4 mark
+  const rackX = TX + TW * 0.73;
+  const rackY = TY + TH / 2;
+  const spacing = BALL_RADIUS * 2.001;  // balls kiss — no gap
+  const rows = [
+    [1],
+    [9, 2],
+    [3, 8, 10],
+    [4, 14, 7, 11],
+    [6, 12, 15, 13, 5],
+  ];
+  // solid 1-7, stripe 9-15
+  const isSolid = n => n >= 1 && n <= 7;
+  const ballColors = {
+    1:'#f5d800', 2:'#1a3fa0', 3:'#c0392b', 4:'#6b2fa0', 5:'#e67e22',
+    6:'#1e8449', 7:'#7b1f1f', 8:'#111111',
+    9:'#f5d800', 10:'#1a3fa0', 11:'#c0392b', 12:'#6b2fa0', 13:'#e67e22',
+    14:'#1e8449', 15:'#7b1f1f'
+  };
+  let bi = 1;
+  rows.forEach((row, ri) => {
+    row.forEach((num, ci) => {
+      const bx = rackX + ri * spacing * Math.cos(Math.PI/6);
+      const by = rackY + (ci - (row.length-1)/2) * spacing;
+      balls.push({
+        id: bi++, x: bx, y: by, vx:0, vy:0, pocketed:false,
+        isCue:false, solid:isSolid(num), num,
+        color: ballColors[num],
+        stripe: !isSolid(num)
+      });
+    });
+  });
+  return balls;
+}
+
+// ── PLAYER INIT ──
+
+// Returns 'cutthroat' for 3-4 players, 'eightball' for 2
+function getGameMode(playerCount) {
+  return playerCount >= 3 ? 'cutthroat' : 'eightball';
+}
+
+// Assign cutthroat ball groups to players
+// 3 players: 1-5, 6-10, 11-15
+// 4 players: 1-4, 5-8, 9-12, 13-15
+function assignCutthroatGroups(players) {
+  const n = players.length;
+  let groups;
+  if (n === 3) {
+    groups = [
+      { label: 'Balls 1–5',   nums: [1,2,3,4,5] },
+      { label: 'Balls 6–10',  nums: [6,7,8,9,10] },
+      { label: 'Balls 11–15', nums: [11,12,13,14,15] },
+    ];
+  } else { // 4 players
+    groups = [
+      { label: 'Balls 1–4',   nums: [1,2,3,4] },
+      { label: 'Balls 5–8',   nums: [5,6,7,8] },
+      { label: 'Balls 9–12',  nums: [9,10,11,12] },
+      { label: 'Balls 13–15', nums: [13,14,15] },
+    ];
+  }
+  // Shuffle group assignment randomly
+  const shuffled = groups.sort(() => Math.random() - 0.5);
+  players.forEach((p, i) => {
+    p.ctGroup = shuffled[i]; // { label, nums[] }
+    p.eliminated = false;
+  });
+}
+
+function startGame() {
+  const humanCount = selectedProfiles.length + (guestProfile ? 1 : 0);
+  if (humanCount < 1) return;
+
+  // Kill any lingering replay from a previous game
+  if (activeReplayInterval) { clearInterval(activeReplayInterval); activeReplayInterval = null; }
+  replayRunning = false;
+  loopRunning   = false;
+
+  // Clear old ball meshes from previous game
+  if (threeScene && Object.keys(ballMeshes).length > 0) {
+    Object.values(ballMeshes).forEach(m => threeScene.remove(m));
+    ballMeshes = {};
+  }
+  if (threeScene && cueMesh) { threeScene.remove(cueMesh); cueMesh = null; }
+  if (threeScene && aimLineMesh) { threeScene.remove(aimLineMesh); aimLineMesh = null; }
+  if (threeScene && ghostBallMesh) { threeScene.remove(ghostBallMesh); ghostBallMesh = null; }
+  if (threeScene && ballInHandGhostMesh) { threeScene.remove(ballInHandGhostMesh); ballInHandGhostMesh = null; }
+  trailParticles.forEach(p => threeScene && threeScene.remove(p));
+  trailParticles = [];
+
+  // Build the ordered human profiles list
+  const humanSources = guestProfile
+    ? [guestProfile, ...selectedProfiles]
+    : selectedProfiles;
+
+  // Load fresh profiles with expiry check (skip for AI/guest)
+  const freshHumans = humanSources.map(p => {
+    if (p.isGuest || p.isAI) return p;
+    const fresh = getProfile(p.id) || p;
+    expireEarnedCoins(fresh);
+    resetDailyIfNeeded(fresh);
+    return fresh;
+  });
+
+  // Build AI profile-like objects from selected AI ids
+  const aiPlayers = selectedAIIds.map(aid => {
+    const char = AI_ROSTER.find(a => a.id === aid);
+    return {
+      id: 'ai_' + char.id,
+      name: char.name,
+      isAI: true,
+      aiId: char.id,
+      aiChar: char,
+      gamesPlayed: 0, gamesWon: 0,
+      earnedCoins: 0, paidCoins: 0,
+      earnedLedger: [], todayEarned: 0, todayKey: todayKey(),
+      ownedCues: ['classic'],  activeCue:  'classic',
+      ownedFelts: ['classic_green'], activeFelt: 'classic_green',
+      ownedBalls: ['classic'], activeBalls: 'classic',
+    };
+  });
+
+  // Interleave: human players first, then AI fills remaining seats
+  const allPlayers = [...freshHumans, ...aiPlayers];
+
+  // Note: calcTableLayout() runs after showScreen('game') via rAF for correct dimensions
+  const mode = getGameMode(allPlayers.length);
+
+  G = {
+    mode, // 'eightball' | 'cutthroat'
+    players: allPlayers.map((p, i) => ({
+      profileId:    p.id,
+      name:         p.name,
+      color:        PLAYER_COLORS[i % PLAYER_COLORS.length],
+      avatar:       p.isAI ? p.aiChar.avatar : (p.avatar || ALL_AVATARS[i % ALL_AVATARS.length]),
+      earnedCoins:  p.earnedCoins || 0,
+      paidCoins:    p.paidCoins   || 0,
+      group:        null,   // eightball: 'solid'|'stripe'
+      ctGroup:      null,   // cutthroat: { label, nums[] }
+      eliminated:   false,
+      ballsPocketed:0,
+      activeCue:    p.activeCue   || 'classic',
+      activeFelt:   p.activeFelt  || 'classic_green',
+      isAI:         !!p.isAI,
+      isGuest:      !!p.isGuest,
+      aiChar:       p.aiChar || null,
+    })),
+    currentPlayer: 0,
+    balls: [],
+    phase: 'aiming',
+    aimAngle: Math.PI,
+    power: 0,
+    spin: { x: 0, y: 0 },
+    foulThisTurn: false,
+    eightBallLegal: false,
+    winner: null,
+    breakShot: true,
+    turnMsg: '',
+    aiThinkTimer: null,
+    ballInHand: false,
+    ballTrail: [],
+    ghostBallActive: false,
+    ghostBallOwner:  -1,
+    powerBallExtraTurn: false,
+    powerShotActive: false,
+    powerShotOwner:  -1,
+    sniperActive:    false,
+    sniperOwner:     -1,
+    blackHole:       null,
+    decoyTurnsLeft:  undefined,
+    aiShowingAim: false,
+    replayBuffer: [],     // array of ball snapshots for slow-mo replay
+    _replayTick: 0,
+    breakBallsSpread: 0,  // for break rating
+  };
+
+  // Assign cutthroat groups immediately
+  if (mode === 'cutthroat') assignCutthroatGroups(G.players);
+
+  const opponentNames = G.players.filter(p => p.isAI).map(p => p.name).join(', ');
+  const vsLine = opponentNames ? `vs ${opponentNames}` : '';
+  const breakMsg = `Break shot! ${G.players[0].name}'s turn.${vsLine ? ` <span style="color:var(--text-dim);font-size:11px;">${vsLine}</span>` : ''}<br><span style="font-size:10px;color:var(--text-dim)">Move mouse to aim · Hold anywhere to charge · Release to shoot</span>`;
+  setStatus(breakMsg);
+
+  // Show the screen first so the DOM has dimensions, then layout + init balls in next frame
+  showScreen('game');
+  // Reset camera to default position in case player had zoomed in previous game
+  if (threeCamera) {
+    threeCamera.position.set(-5.5, 4.5, 0);
+    threeCamera.lookAt(1.0, 0, 0);
+  }
+  requestAnimationFrame(() => {
+    calcTableLayout();
+    G.balls = initBalls();
+    renderSidebar(); // now that balls exist, sidebar counts are correct
+    renderInventorySidebar();
+    if (!loopRunning) {
+      loopRunning = true;
+      lastTime = 0;
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Spawn power ball after break has time to settle (~5s)
+    setTimeout(() => { if (G.balls && G.phase !== 'gameover' && !replayRunning && humanGameLevel() >= 6) spawnPowerBall(); }, 5000);
+
+    // Show cutthroat rules intro before first shot
+    if (G.mode === 'cutthroat') {
+      showCutthroatIntro(() => {
+        if (G.players[0].isAI) scheduleAITurn();
+      });
+    } else {
+      if (G.players[0].isAI) scheduleAITurn();
+    }
+  });
+}
+
+// ── CUTTHROAT INTRO MODAL ──
+function showCutthroatIntro(onClose) {
+  const groupLines = G.players.map(p =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #2a2a2a;">
+      <span style="color:${p.color};font-size:18px;">${p.avatar}</span>
+      <span style="color:${p.color};font-weight:600;">${p.name}</span>
+      <span style="color:var(--text-dim);font-size:13px;margin-left:auto;">${p.ctGroup.label}</span>
+    </div>`
+  ).join('');
+
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.innerHTML = `
+    <div class="modal" style="max-width:420px;">
+      <h3>🎱 Cutthroat!</h3>
+      <p style="margin-bottom:12px;">Pocket your <em>opponents'</em> balls to eliminate them. Protect your own. Last player with a ball on the table wins.</p>
+      <div style="margin-bottom:16px;">${groupLines}</div>
+      <div style="background:#1a1a1a;border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.9;color:var(--text-dim);">
+        <div><strong style="color:var(--text)">Pocket an opponent's ball</strong> → keep shooting 🎯</div>
+        <div><strong style="color:var(--text)">Pocket only your own ball(s)</strong> → they stay down, turn ends</div>
+        <div><strong style="color:var(--text)">Scratch</strong> → one of your balls spots back, turn lost</div>
+        <div><strong style="color:var(--text)">All your balls pocketed</strong> → eliminated 💀</div>
+      </div>
+      <p style="font-size:12px;color:var(--gold);margin-bottom:16px;">It's your break shot — you go first!</p>
+      <div class="modal-btns">
+        <button class="btn" id="ct-intro-ok">Let's Play!</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.querySelector('#ct-intro-ok').onclick = () => { m.remove(); onClose(); };
+}
+
+// ── SIDEBAR ──
+function renderSidebar() {
+  const container = document.getElementById('player-panels');
+  container.innerHTML = G.players.map((p, i) => {
+    let groupLabel;
+    if (G.mode === 'cutthroat') {
+      const alive = ctBallsRemaining(i);
+      const elim  = p.eliminated;
+      groupLabel = elim
+        ? `<span style="color:#e74c3c;">✕ Eliminated</span>`
+        : `${p.ctGroup ? p.ctGroup.label : '—'} <span style="color:var(--text-dim)">(${alive} left)</span>`;
+    } else {
+      groupLabel = p.group ? (p.group === 'solid' ? '⬤ Solids' : '◎ Stripes') : '—';
+    }
+    const aiTag = p.isAI
+      ? `<span style="font-size:9px;background:rgba(231,76,60,0.2);color:#e74c3c;border:1px solid #e74c3c;border-radius:3px;padding:1px 5px;margin-left:4px;">AI</span>`
+      : '';
+    const elimStyle = p.eliminated ? 'opacity:0.45;' : '';
+    return `<div class="player-panel${G.currentPlayer === i ? ' active' : ''}" id="pp-${i}" style="${elimStyle}">
+      <div class="player-panel-name" style="color:${p.color}">${p.avatar} ${p.name}${aiTag}</div>
+      <div class="player-panel-group" id="pp-group-${i}">${groupLabel}</div>
+      <div class="player-panel-coins" id="pp-coins-${i}">⬤ ${(p.earnedCoins||0)+(p.paidCoins||0)}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateSidebar() {
+  G.players.forEach((p, i) => {
+    const el = document.getElementById(`pp-${i}`);
+    if (!el) return;
+    el.className = 'player-panel' + (G.currentPlayer === i ? ' active' : '');
+    if (p.eliminated) el.style.opacity = '0.45';
+
+    const grpEl = document.getElementById(`pp-group-${i}`);
+    if (grpEl) {
+      if (G.mode === 'cutthroat') {
+        const alive = ctBallsRemaining(i);
+        grpEl.innerHTML = p.eliminated
+          ? `<span style="color:#e74c3c;">✕ Eliminated</span>`
+          : `${p.ctGroup ? p.ctGroup.label : '—'} <span style="color:var(--text-dim)">(${alive} left)</span>`;
+      } else {
+        grpEl.textContent = p.group ? (p.group === 'solid' ? '⬤ Solids' : '◎ Stripes') : '—';
+      }
+    }
+    const coinsEl = document.getElementById(`pp-coins-${i}`);
+    if (coinsEl) coinsEl.textContent = `⬤ ${(p.earnedCoins||0)+(p.paidCoins||0)}`;
+  });
+}
+
+function setStatus(msg) {
+  if (G && G.hasOwnProperty('turnMsg')) G.turnMsg = msg;
+  const el = document.getElementById('status-msg');
+  if (el) el.innerHTML = msg;
+}
+
+// ── SPIN CONTROL ──
+function drawSpin() {
+  const spin = (G && G.spin) ? G.spin : { x: 0, y: 0 };
+  const s = spinCtx;
+  const w = spinCanvas.width, h = spinCanvas.height;
+  s.clearRect(0,0,w,h);
+  // Background
+  s.fillStyle = '#1a1a1a';
+  s.beginPath(); s.arc(w/2,h/2,w/2-1,0,Math.PI*2); s.fill();
+  // Grid
+  s.strokeStyle = '#333'; s.lineWidth = 1;
+  s.beginPath(); s.moveTo(w/2,2); s.lineTo(w/2,h-2); s.stroke();
+  s.beginPath(); s.moveTo(2,h/2); s.lineTo(w-2,h/2); s.stroke();
+  // Dot
+  const dx = w/2 + spin.x * (w/2 - 8);
+  const dy = h/2 + spin.y * (h/2 - 8);
+  s.fillStyle = '#c9a84c';
+  s.beginPath(); s.arc(dx,dy,5,0,Math.PI*2); s.fill();
+  // Label
+  const lx = spin.x, ly = spin.y;
+  let label = 'Center';
+  if (Math.abs(lx) < 0.2 && Math.abs(ly) < 0.2) label = 'Center';
+  else if (ly < -0.5) label = 'Top spin';
+  else if (ly > 0.5)  label = 'Back spin';
+  else if (lx < -0.5) label = 'Left';
+  else if (lx > 0.5)  label = 'Right';
+  else label = 'Mixed';
+  const spinLabel = document.getElementById('spin-label');
+  if (spinLabel) spinLabel.textContent = label;
+}
+
+spinCanvas.addEventListener('click', e => {
+  if (G.phase !== 'aiming') return;
+  if (G.players[G.currentPlayer] && G.players[G.currentPlayer].isAI) return;
+  const r = spinCanvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * 2 - 1;
+  const y = (e.clientY - r.top) / r.height * 2 - 1;
+  const dist = Math.sqrt(x*x+y*y);
+  G.spin.x = dist > 1 ? x/dist : x;
+  G.spin.y = dist > 1 ? y/dist : y;
+  drawSpin();
+});
+
+// ── AIMING ──
+let powerCharging = false;
+let powerStart = 0;
+let _aimRafId = null;
+
+// Unproject mouse clientX/clientY onto the table plane (y=0 in world space)
+// Returns { x, z } in world coords, or null if ray misses plane
+function unprojectToTable(clientX, clientY) {
+  if (!threeCamera || !threeRenderer) return null;
+  const THREE = THREE_LIB;
+  if (!THREE) return null;
+  const rect = canvas.getBoundingClientRect();
+  const ndcX =  ((clientX - rect.left)  / rect.width)  * 2 - 1;
+  const ndcY = -((clientY - rect.top)   / rect.height) * 2 + 1;
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera({ x: ndcX, y: ndcY }, threeCamera);
+
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const target = new THREE.Vector3();
+  const hit = raycaster.ray.intersectPlane(plane, target);
+  if (!hit) return null;
+  return { x: target.x, z: target.z };
+}
+
+// Convert world XZ hit point to physics aim angle from cue ball
+function worldHitToAimAngle(worldPt, cueBall) {
+  // physToWorld maps physics → world. We need world → physics direction.
+  // physToWorld: wx = (px - TX)/TW - 0.5) * WORLD_W  →  px = (wx/WORLD_W + 0.5)*TW + TX
+  // Aim direction: from cue ball world pos toward cursor world pos, projected onto table
+  const cueWorld = physToWorld(cueBall.x, cueBall.y);
+  const dx = worldPt.x - cueWorld.x;
+  const dz = worldPt.z - cueWorld.z;
+  // In physics space: +physX = +worldX, +physY = +worldZ
+  // aimAngle is measured in physics XY plane: cos(a)=physDX, sin(a)=physDY
+  return Math.atan2(dz, dx);
+}
+
+canvas.addEventListener('mousedown', onPointerDown);
+canvas.addEventListener('mousemove', onPointerMove);
+canvas.addEventListener('mouseup',   onPointerUp);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); onPointerDown(e.touches[0]); }, {passive:false});
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); onPointerMove(e.touches[0]); }, {passive:false});
+canvas.addEventListener('touchend',   e => { e.preventDefault(); onPointerUp(e.changedTouches[0]); }, {passive:false});
+
+function getCueBall() { return G.balls && G.balls.find(b => b.isCue && !b.pocketed); }
+
+function onPointerDown(e) {
+  if (!G.phase || G.phase !== 'aiming') return;
+  if (G.players[G.currentPlayer] && G.players[G.currentPlayer].isAI) return;
+  const {x, y} = canvasXY(e);
+
+  // ── Ball-in-hand placement ──
+  if (G.ballInHand) {
+    const cue = G.balls.find(b => b.isCue);
+    if (!cue) return;
+    const margin = BALL_RADIUS + 2;
+    const cx = Math.max(TX + margin, Math.min(TX + TW - margin, x));
+    const cy = Math.max(TY + margin, Math.min(TY + TH - margin, y));
+    const overlap = G.balls.some(b => !b.pocketed && !b.isCue &&
+      Math.sqrt((b.x-cx)**2 + (b.y-cy)**2) < BALL_RADIUS * 2.2);
+    if (overlap) return;
+    cue.pocketed = false;
+    cue.x = cx; cue.y = cy; cue.vx = 0; cue.vy = 0;
+    hideBallInHandBanner();
+    updateSidebar();
+    setStatus(`${G.players[G.currentPlayer].name}'s turn.`);
+    return;
+  }
+
+  const cue = getCueBall();
+  if (!cue) return;
+
+  // Start charging — independent RAF loop so power fills even without mouse movement
+  powerCharging = true;
+  powerStart = Date.now();
+
+  function chargeTick() {
+    if (!powerCharging) return;
+    const elapsed = (Date.now() - powerStart) / 1000;
+    G.power = Math.min(1, elapsed * 0.4);  // ~2.5s to full power
+    const pct = Math.round(G.power * 100);
+    document.getElementById('power-bar').style.width = pct + '%';
+    document.getElementById('power-pct').textContent = pct + '%';
+    _aimRafId = requestAnimationFrame(chargeTick);
+  }
+  _aimRafId = requestAnimationFrame(chargeTick);
+}
+
+function onPointerMove(e) {
+  if (!G.phase || G.phase !== 'aiming') return;
+  const {x, y} = canvasXY(e);
+
+  if (G.ballInHand) {
+    ballInHandMouseX = x;
+    ballInHandMouseY = y;
+    return;
+  }
+
+  const cue = getCueBall();
+  if (!cue) return;
+
+  // ── Aim: direct, immediate — no smoothing, no dead zone ──
+  // Freeze while charging so hold+release is predictable
+  if (!G.players[G.currentPlayer]?.isAI && !powerCharging) {
+    const worldPt = unprojectToTable(e.clientX, e.clientY);
+    if (worldPt) {
+      const cueWorld = physToWorld(cue.x, cue.y);
+
+      // Sensitivity damping: compute angle from a point BEHIND the cue ball
+      // (toward the camera, along the current aim direction) rather than
+      // from the cue ball itself. This stretches the angular range across
+      // more mouse travel without any lag or dead zone.
+      // Pull origin 2.5 world units behind cue along current aim direction.
+      const PULL = 2.5;
+      const originX = cueWorld.x - Math.cos(G.aimAngle) * PULL;
+      const originZ = cueWorld.z - Math.sin(G.aimAngle) * PULL;
+
+      const dx = worldPt.x - originX;
+      const dz = worldPt.z - originZ;
+      G.aimAngle = Math.atan2(dz, dx);
+    }
+  }
+}
+
+function onPointerUp(e) {
+  if (!G.phase || G.phase !== 'aiming') return;
+  if (G.ballInHand) return;
+  if (_aimRafId) { cancelAnimationFrame(_aimRafId); _aimRafId = null; }
+  if (powerCharging && G.power > 0.05) {
+    shoot();
+  }
+  powerCharging = false;
+  G.power = 0;
+  document.getElementById('power-bar').style.width = '0%';
+  document.getElementById('power-pct').textContent = '0%';
+}
+
+function canvasXY(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function shoot() {
+  const cue = getCueBall();
+  if (!cue) return;
+  let speed = G.power * 18;
+
+  // Power Shot: 2× speed on activating player's shot
+  if (G.powerShotActive && G.powerShotOwner === G.currentPlayer) {
+    speed *= 2;
+    G.powerShotActive = false;
+    G.powerShotOwner  = -1;
+  }
+
+  cue.vx = Math.cos(G.aimAngle) * speed;
+  cue.vy = Math.sin(G.aimAngle) * speed;
+  cue.vx += G.spin.x * 1.5;
+  cue.vy += G.spin.y * 1.5;
+  G.phase = 'shooting';
+  G.foulThisTurn = false;
+  G.ballsPocketedThisTurn = [];
+  G.firstHitThisTurn = null;
+  G.ballTrail = [];
+  G.replayBuffer = [];
+  G._replayTick = 0;
+
+  // Sniper consumed on shot
+  if (G.sniperActive && G.sniperOwner === G.currentPlayer) {
+    G.sniperActive = false;
+    G.sniperOwner  = -1;
+  }
+
+  Audio.cueHit(G.power);
+}
+
+// ── PHYSICS ──
+function physicsStep() {
+  if (!G.balls || G.balls.length === 0) return;
+  const balls = G.balls.filter(b => !b.pocketed);
+
+  // Move
+  balls.forEach(b => {
+    b.x += b.vx; b.y += b.vy;
+    b.vx *= FRICTION; b.vy *= FRICTION;
+    if (Math.sqrt(b.vx*b.vx+b.vy*b.vy) < MIN_SPEED) { b.vx=0; b.vy=0; }
+
+    // Record cue ball trail
+    if (b.isCue && G.phase === 'shooting' && isFinite(b.x) && isFinite(b.y)) {
+      if (!G.ballTrail) G.ballTrail = [];
+      G.ballTrail.push({ x: b.x, y: b.y });
+      if (G.ballTrail.length > 120) G.ballTrail.shift(); // cap trail length
+    }
+
+    // Cushion bounce
+    if (b.x - BALL_RADIUS < TX)      { b.x = TX + BALL_RADIUS;    const spd = Math.abs(b.vx); b.vx = spd * 0.75;  if (spd > 1.5) Audio.cushion(spd / 12); }
+    if (b.x + BALL_RADIUS > TX + TW) { b.x = TX+TW-BALL_RADIUS;  const spd = Math.abs(b.vx); b.vx = -spd * 0.75; if (spd > 1.5) Audio.cushion(spd / 12); }
+    if (b.y - BALL_RADIUS < TY)      { b.y = TY + BALL_RADIUS;    const spd = Math.abs(b.vy); b.vy = spd * 0.75;  if (spd > 1.5) Audio.cushion(spd / 12); }
+    if (b.y + BALL_RADIUS > TY + TH) { b.y = TY+TH-BALL_RADIUS;  const spd = Math.abs(b.vy); b.vy = -spd * 0.75; if (spd > 1.5) Audio.cushion(spd / 12); }
+  });
+
+  // Ball-ball collisions
+  for (let i = 0; i < balls.length; i++) {
+    for (let j = i+1; j < balls.length; j++) {
+      const a = balls[i], b = balls[j];
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if (dist < BALL_RADIUS*2 && dist > 0) {
+        // Ghost ball: cue passes through the first ball it would hit,
+        // but ONLY on the activating player's own shot.
+        if (G.ghostBallActive && G.ghostBallOwner === G.currentPlayer &&
+            (a.isCue || b.isCue) && !a.isPowerBall && !b.isPowerBall) {
+          G.ghostBallActive = false;
+          G.ghostBallOwner  = -1;
+          continue; // skip this collision — cue passes through
+        }
+        // Track first hit for foul detection
+        if (!G.firstHitThisTurn && G.phase === 'shooting') {
+          if (a.isCue) G.firstHitThisTurn = b;
+          if (b.isCue) G.firstHitThisTurn = a;
+        }
+        const nx = dx/dist, ny = dy/dist;
+        const overlap = BALL_RADIUS*2 - dist;
+        a.x -= nx*overlap/2; a.y -= ny*overlap/2;
+        b.x += nx*overlap/2; b.y += ny*overlap/2;
+        const dvx = a.vx-b.vx, dvy = a.vy-b.vy;
+        const dot = dvx*nx+dvy*ny;
+        if (dot > 0) {
+          a.vx -= dot*nx; a.vy -= dot*ny;
+          b.vx += dot*nx; b.vy += dot*ny;
+          Audio.ballHit(dot / 16);
+        }
+      }
+    }
+  }
+
+  // Record replay snapshots every 3 physics steps (60fps → ~20fps replay buffer)
+  if (G.phase === 'shooting' && G.replayBuffer !== undefined) {
+    G._replayTick = (G._replayTick || 0) + 1;
+    if (G._replayTick % 3 === 0) {
+      const snap = G.balls.map(b => ({ x: b.x, y: b.y, pocketed: b.pocketed }));
+      G.replayBuffer.push(snap);
+      if (G.replayBuffer.length > 120) G.replayBuffer.shift(); // ~6 seconds max
+    }
+  }
+
+  // ── Black Hole gravity ──
+  if (G.blackHole) {
+    const { x: hx, y: hy, radius } = G.blackHole;
+    balls.forEach(b => {
+      if (b.isBlackHoleMarker || b.isCue) return; // don't pull cue or marker
+      const dx = hx - b.x, dy = hy - b.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < radius && dist > 1) {
+        // Pull strength increases as ball gets closer
+        const strength = 0.18 * (1 - dist / radius);
+        b.vx += (dx / dist) * strength;
+        b.vy += (dy / dist) * strength;
+      }
+    });
+  }
+
+  // Pocket check
+  G.balls.forEach(b => {
+    if (b.pocketed) return;
+    POCKETS.forEach(p => {
+      const dx = b.x-p.x, dy = b.y-p.y;
+      if (Math.sqrt(dx*dx+dy*dy) < POCKET_RADIUS) {
+        b.pocketed = true; b.vx=0; b.vy=0;
+        if (G.ballsPocketedThisTurn) G.ballsPocketedThisTurn.push(b);
+        onBallPocketed(b);
+      }
+    });
+  });
+
+  // Check all stopped — also handle gameover (8-ball pocketed) so endGame fires
+  const moving = balls.filter(b => !b.pocketed && (Math.abs(b.vx)>MIN_SPEED || Math.abs(b.vy)>MIN_SPEED));
+  if (moving.length === 0 && (G.phase === 'shooting' || G.phase === 'gameover')) {
+    const wasGameover = G.phase === 'gameover';
+    G.phase = 'settling';
+    // On break shot, show rating
+    // Break rating — only meaningful for human breaks
+    const breaker = G.players[G.currentPlayer];
+    if (G.breakShot && !wasGameover && breaker && !breaker.isAI) showBreakRating();
+    // If any ball was pocketed this turn, play slow-mo replay
+    const pocketed = G.ballsPocketedThisTurn || [];
+    if (pocketed.length > 0 && G.replayBuffer && G.replayBuffer.length > 10) {
+      setTimeout(() => {
+        playSlowMoReplay(() => {
+          if (wasGameover) G.phase = 'gameover';
+          endTurn();
+        });
+      }, 80);
+    } else {
+      setTimeout(() => {
+        if (wasGameover) G.phase = 'gameover';
+        endTurn();
+      }, 400);
+    }
+  }
+}
+
+// ── Cutthroat helpers ──
+function ctBallsRemaining(playerIdx) {
+  if (!G.balls || !G.players[playerIdx] || !G.players[playerIdx].ctGroup) return 0;
+  const nums = G.players[playerIdx].ctGroup.nums;
+  return G.balls.filter(b => !b.pocketed && nums.includes(b.num)).length;
+}
+
+function ctOwnerOf(ballNum) {
+  // Returns player index who owns this ball in cutthroat, or -1
+  return G.players.findIndex(p => p.ctGroup && p.ctGroup.nums.includes(ballNum));
+}
+
+function ctActivePlayers() {
+  return G.players.filter(p => !p.eliminated);
+}
+
+function ctSpotBall(playerIdx) {
+  // Spot one of this player's pocketed balls back near the foot spot.
+  // Returns true if a ball was spotted, false if none were available.
+  if (!G.players[playerIdx] || !G.players[playerIdx].ctGroup) return false;
+  const nums = G.players[playerIdx].ctGroup.nums;
+  const toSpot = G.balls.find(b => b.pocketed && nums.includes(b.num));
+  if (!toSpot) return false;
+  // Place near foot spot (rack position center) with slight random offset
+  const spotX = TX + TW * 0.73 + (Math.random() - 0.5) * BALL_RADIUS * 4;
+  const spotY = TY + TH / 2    + (Math.random() - 0.5) * BALL_RADIUS * 4;
+  toSpot.pocketed = false;
+  toSpot.x = spotX; toSpot.y = spotY;
+  toSpot.vx = 0;    toSpot.vy = 0;
+  return true;
+}
+
+function onBallPocketed(ball) {
+  const cp = G.players[G.currentPlayer];
+  if (ball.isCue) {
+    G.foulThisTurn = true;
+    Audio.scratch();
+    return;
+  }
+
+  // ── Decoy ball pocketed — silent, no scoring, just disappears ──
+  if (ball.isDecoy) {
+    Audio.pocket();
+    showPowerBallToast('🎭 Decoy pocketed — no points!', 1800);
+    return;
+  }
+
+  // ── Black hole marker pocketed (shouldn't happen, but guard it) ──
+  if (ball.isBlackHoleMarker) return;
+
+  // ── Power ball pocketed ──
+  if (ball.isPowerBall) {
+    Audio.pocket();
+    ball.pocketed = true;
+    clearPowerBallIndicator();
+    // Apply the effect (uses current player index)
+    ball.powerBallDef.apply(G.currentPlayer);
+    // Respawn a new power ball after 12 seconds
+    setTimeout(() => { if (G.balls && G.phase !== 'gameover' && !replayRunning && humanGameLevel() >= 6) spawnPowerBall(); }, 12000);
+    return;
+  }
+
+  if (G.mode === 'cutthroat') {
+    Audio.pocket();
+    cp.ballsPocketed++;
+    return;
+  }
+
+  // ── 8-ball mode ──
+  if (ball.num === 8) {
+    // Scratching while sinking the 8 is always a loss, even if all other balls were cleared
+    const isLegal = !G.foulThisTurn && cp.group && countRemaining(cp.group === 'solid') === 0;
+    if (isLegal) {
+      G.winner = G.currentPlayer;
+    } else {
+      const opponents = G.players.map((p, i) => ({ p, i })).filter(({ i }) => i !== G.currentPlayer);
+      const humanOpponent = opponents.find(({ p }) => !p.isAI);
+      G.winner = humanOpponent ? humanOpponent.i : opponents[0].i;
+    }
+    Audio.pocket();
+    G.phase = 'gameover';
+    return;
+  }
+  // Assign group on first pocket after break
+  if (!cp.group && G.breakShot === false) {
+    cp.group = ball.solid ? 'solid' : 'stripe';
+    const opposite = ball.solid ? 'stripe' : 'solid';
+    G.players.forEach((p, i) => {
+      if (i !== G.currentPlayer && !p.group) p.group = opposite;
+    });
+    // Toast the group assignment so the player knows what they're shooting
+    const groupLabel = cp.group === 'solid' ? '⬤ Solids' : '◎ Stripes';
+    const oppLabel   = opposite === 'solid'  ? '⬤ Solids' : '◎ Stripes';
+    const oppName    = G.players.find((p, i) => i !== G.currentPlayer && !p.isAI)?.name
+                    || G.players.find((p, i) => i !== G.currentPlayer)?.name || 'Opponent';
+    if (!cp.isAI) {
+      // Show assignment toast on canvas
+      const wrap = document.getElementById('game-canvas-wrap');
+      if (wrap) {
+        document.querySelectorAll('.group-toast').forEach(t => t.remove());
+        const t = document.createElement('div');
+        t.className = 'break-toast group-toast';
+        t.style.top = '50%';
+        t.style.transform = 'translateX(-50%) translateY(-50%)';
+        t.innerHTML = `<div style="font-size:18px;font-weight:700;color:var(--gold);">${groupLabel}</div>
+          <div style="font-size:12px;margin-top:4px;">${cp.name} → ${groupLabel} &nbsp;|&nbsp; ${oppName} → ${oppLabel}</div>`;
+        wrap.appendChild(t);
+        setTimeout(() => t.remove(), 2800);
+      }
+    }
+  }
+  Audio.pocket();
+  cp.ballsPocketed++;
+}
+
+function countRemaining(solid) {
+  return G.balls.filter(b => !b.pocketed && !b.isCue && !b.isDecoy && !b.isBlackHoleMarker && b.num !== 8 && b.solid === solid).length;
+}
+
+function endTurn() {
+  if (G.phase === 'gameover') { endGame(); return; }
+  const wasBreakShot = G.breakShot; // capture BEFORE overwriting
+  G.breakShot = false;
+  G.phase = 'aiming';
+
+  const cp      = G.players[G.currentPlayer];
+  const pocketed = G.ballsPocketedThisTurn || [];
+
+  // No-hit foul — exempt break shot (cue always hits rack even if tracking misses)
+  if (!G.foulThisTurn && !G.firstHitThisTurn && !wasBreakShot && pocketed.filter(b => !b.isCue).length === 0) {
+    G.foulThisTurn = true;
+  }
+
+  const scratch = G.foulThisTurn;
+  // Distinguish: true scratch = cue ball actually pocketed; no-hit foul = cue still on table
+  const cueBallPocketed = scratch && pocketed.some(b => b.isCue);
+  const noHitFoul       = scratch && !cueBallPocketed;
+
+  // Foul label and toast text differ by type
+  const foulLabel8b = cueBallPocketed
+    ? 'Scratch — cue ball in pocket.'
+    : 'Foul — no ball contacted.';
+  const foulToast8b = cueBallPocketed
+    ? '🚫 Scratch — cue ball in pocket. Ball in hand for opponent.'
+    : '🚫 Foul — cue ball must contact a ball. Ball in hand for opponent.';
+  const foulLabelCT = cueBallPocketed
+    ? 'Scratch — your ball spots back.'
+    : 'Foul — no ball contacted. Your ball spots back.';
+  const foulToastCT = cueBallPocketed
+    ? '🚫 Scratch — your ball spots back. Next player gets ball in hand.'
+    : '🚫 Foul — no ball contacted. Your ball spots back. Next player gets ball in hand.';
+
+  if (G.mode === 'cutthroat') {
+    // ── Cutthroat end-of-turn logic ──
+
+    // Check eliminations: anyone whose all balls are now pocketed is out
+    G.players.forEach((p, i) => {
+      if (!p.eliminated && ctBallsRemaining(i) === 0) {
+        p.eliminated = true;
+        Audio.eliminate();
+        setStatus(`💀 ${p.name} is eliminated!`);
+      }
+    });
+
+    const active = ctActivePlayers();
+
+    // Win condition: only one player left with balls
+    if (active.length === 1) {
+      G.winner = G.players.indexOf(active[0]);
+      G.phase = 'gameover';
+      endGame();
+      return;
+    }
+    if (active.length === 0) {
+      // Shouldn't happen, but just in case
+      G.winner = 0;
+      G.phase = 'gameover';
+      endGame();
+      return;
+    }
+
+    // Scratch in cutthroat: shooter gets one of THEIR OWN balls spotted back (consolation),
+    // but loses their turn.
+    if (scratch) {
+      const spotted = ctSpotBall(G.currentPlayer);
+      const spottedMsg = spotted ? ' One of your balls spotted back.' : '';
+      G.currentPlayer = nextActivePlayer(G.currentPlayer);
+      Audio.turnChange();
+      placeCueBallAfterScratch();
+      setStatus(`${foulLabelCT} ${cp.name} — turn lost.${spottedMsg}`);
+      showFoulToast(`🚫 ${foulLabelCT} Next player gets ball in hand.`, !cp.isAI);
+    } else {
+      // Did shooter pocket any opponent balls? Keep turn if yes and no scratch
+    const opponentBallsDown = pocketed.filter(b => !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && ctOwnerOf(b.num) !== G.currentPlayer);
+      if (opponentBallsDown.length > 0) {
+        setStatus(`Nice! ${cp.name} pockets ${opponentBallsDown.length} opponent ball${opponentBallsDown.length > 1 ? 's' : ''} — shoots again!`);
+        // Award coins for opponent balls pocketed
+        if (!cp.isAI && !cp.isGuest) {
+          const earned = awardCoins(getProfile(cp.profileId), opponentBallsDown.length * 3);
+          cp.earnedCoins += earned;
+        }
+        // Stay on same player — but skip if eliminated
+        if (!cp.eliminated) {
+          // Keep turn
+        } else {
+          G.currentPlayer = nextActivePlayer(G.currentPlayer);
+        }
+      } else {
+        G.currentPlayer = nextActivePlayer(G.currentPlayer);
+        // Distinguish: pocketed only own balls vs. missed everything
+        const ownBallsDown = pocketed.filter(b => !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && ctOwnerOf(b.num) === G.players.indexOf(cp));
+        if (ownBallsDown.length > 0) {
+          setStatus(`${cp.name} pocketed their own ball${ownBallsDown.length > 1 ? 's' : ''} — no opponent ball, turn lost. ${G.players[G.currentPlayer].name}'s turn.`);
+        } else {
+          setStatus(`${G.players[G.currentPlayer].name}'s turn.`);
+        }
+        Audio.turnChange();
+      }
+    }
+
+  } else {
+    // ── 8-ball end-of-turn logic ──
+    const anyBallsDown = pocketed.filter(b => !b.isCue && b.num !== 8 && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker);
+    const myBalls = pocketed.filter(b => !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && cp.group && ((cp.group==='solid')===b.solid) && b.num!==8);
+    let keepTurn = false;
+    if (!scratch) {
+      if (!cp.group && wasBreakShot && anyBallsDown.length > 0) {
+        // Break shot only — keep turn if any ball pocketed before groups assigned
+        keepTurn = true;
+      } else if (cp.group && myBalls.length > 0) {
+        // Only keep turn if NO opponent balls were accidentally pocketed (power balls excluded)
+        const opponentBallsDown = pocketed.filter(b => !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && b.num !== 8 && ((cp.group==='solid') !== b.solid));
+        if (opponentBallsDown.length === 0) keepTurn = true;
+      }
+    }
+    if (scratch) {
+      G.currentPlayer = (G.currentPlayer+1) % G.players.length;
+      Audio.turnChange();
+      placeCueBallAfterScratch();
+      setStatus(`${foulLabel8b} ${cp.name} fouled.`);
+      showFoulToast(foulToast8b, !cp.isAI);
+    } else if (!keepTurn) {
+      G.currentPlayer = (G.currentPlayer+1) % G.players.length;
+      setStatus(G.players[G.currentPlayer].name + "'s turn.");
+      Audio.turnChange();
+    } else {
+      setStatus(`Nice! ${cp.name} pockets ${(cp.group ? myBalls : anyBallsDown).length} — shoots again.`);
+    }
+    // Award coins (human players only)
+    if (myBalls.length > 0 && !scratch && !cp.isAI && !cp.isGuest) {
+      const earned = awardCoins(getProfile(cp.profileId), myBalls.length * 2);
+      cp.earnedCoins += earned;
+    }
+  }
+
+  updateSidebar();
+  renderInventorySidebar();
+  G.spin = {x:0, y:0};
+  drawSpin();
+  // Always reset power bar display at turn boundary
+  const _pb = document.getElementById('power-bar');
+  const _pp = document.getElementById('power-pct');
+  if (_pb) _pb.style.width = '0%';
+  if (_pp) _pp.textContent = '0%';
+
+  // ── Power ball effects ──
+  // Extra turn (Multiball): shooter goes again, but NOT if they scratched
+  if (G.powerBallExtraTurn && !scratch) {
+    G.powerBallExtraTurn = false;
+    G.currentPlayer = G.players.indexOf(cp); // stay on same player
+    setStatus(`${cp.name} shoots again! (Multiball)`);
+  } else {
+    G.powerBallExtraTurn = false; // consume even if scratch
+  }
+
+  // Decoy expiry: count down turns and remove decoys when expired
+  if (G.decoyTurnsLeft !== undefined && G.decoyTurnsLeft > 0) {
+    G.decoyTurnsLeft--;
+    if (G.decoyTurnsLeft === 0) {
+      G.balls.forEach(b => { if (b.isDecoy && !b.pocketed) b.pocketed = true; });
+      G.decoyTurnsLeft = undefined;
+      showPowerBallToast('🎭 Decoys expired — fake balls removed.', 2000);
+    }
+  }
+
+  // Clear stale ghost/sniper/powershot if the activating player's turn is done
+  // (they forfeited the shot or it was consumed already)
+  if (G.ghostBallActive   && G.ghostBallOwner   !== G.currentPlayer) { G.ghostBallActive = false; G.ghostBallOwner = -1; }
+  if (G.powerShotActive   && G.powerShotOwner   !== G.currentPlayer) { G.powerShotActive = false; G.powerShotOwner = -1; }
+  if (G.sniperActive      && G.sniperOwner      !== G.currentPlayer) { G.sniperActive    = false; G.sniperOwner   = -1; }
+
+  // Skip turn: next player marked to skip (Freeze)
+  const nowCp = G.players[G.currentPlayer];
+  if (nowCp.skipTurn) {
+    nowCp.skipTurn = false;
+    setStatus(`${nowCp.name}'s turn skipped! (Freeze)`);
+    G.currentPlayer = G.mode === 'cutthroat'
+      ? nextActivePlayer(G.currentPlayer)
+      : (G.currentPlayer + 1) % G.players.length;
+    Audio.turnChange();
+  }
+
+  const finalCp = G.players[G.currentPlayer];
+  if (finalCp.isAI && G.phase === 'aiming') scheduleAITurn();
+
+  // If a power ball is on the table and it's a human's turn, append a reminder to status
+  if (!finalCp.isAI && G.phase === 'aiming') {
+    const pb = G.balls && G.balls.find(b => b.isPowerBall && !b.pocketed);
+    if (pb) {
+      const el = document.getElementById('status-msg');
+      if (el) {
+        el.innerHTML += `<br><span style="color:${pb.powerBallDef.color};font-size:11px;">
+          ${pb.powerBallDef.icon} Glowing ball on table: pocket it to <strong>${pb.powerBallDef.desc}</strong>
+        </span>`;
+      }
+    }
+  }
+}
+
+// Skip over eliminated players to find the next active one
+function nextActivePlayer(fromIdx) {
+  const n = G.players.length;
+  for (let step = 1; step < n; step++) {
+    const idx = (fromIdx + step) % n;
+    if (!G.players[idx].eliminated) return idx;
+  }
+  return fromIdx;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BALL-IN-HAND
+// ═══════════════════════════════════════════════════════════════════
+
+function placeCueBallAfterScratch() {
+  const cue = G.balls.find(b => b.isCue);
+  if (!cue) return;
+  const cp = G.players[G.currentPlayer];
+  if (cp.isAI) {
+    // AI places the cue ball at a sensible position
+    cue.pocketed = false;
+    cue.x = TX + TW * 0.22 + (Math.random() - 0.5) * TW * 0.05;
+    cue.y = TY + TH * 0.3 + Math.random() * TH * 0.4;
+    cue.vx = 0; cue.vy = 0;
+    hideBallInHandBanner();
+    // Schedule the AI shot after a brief delay
+    setTimeout(() => {
+      if (G.phase === 'aiming' && G.players[G.currentPlayer].isAI) scheduleAITurn();
+    }, 400);
+  } else {
+    // Human places: show banner, enter ball-in-hand mode
+    cue.pocketed = true; // keep hidden until placed
+    G.ballInHand = true;
+    G.phase = 'aiming'; // allow rendering but block shooting
+    showBallInHandBanner();
+  }
+}
+
+function showBallInHandBanner() {
+  const el = document.getElementById('ball-in-hand-banner');
+  if (el) el.style.display = 'block';
+}
+
+function hideBallInHandBanner() {
+  const el = document.getElementById('ball-in-hand-banner');
+  if (el) el.style.display = 'none';
+  G.ballInHand = false;
+  ballInHandMouseX = null;
+  ballInHandMouseY = null;
+  // After placement, check if next AI needs to shoot
+  const cp = G.players && G.players[G.currentPlayer];
+  if (cp && cp.isAI && G.phase === 'aiming') scheduleAITurn();
+}
+
+// ── FOUL TOAST ──
+function showFoulToast(msg, isHumanFoul) {
+  document.querySelectorAll('.foul-toast').forEach(t => t.remove());
+  const wrap = document.getElementById('game-canvas-wrap');
+  if (!wrap) return;
+
+  // On the human's first foul ever this session, show a richer explanation
+  let fullMsg = msg;
+  const isFirstFoul = isHumanFoul && !seenFirstFoulExplainer;
+  if (isFirstFoul) {
+    seenFirstFoulExplainer = true;
+    fullMsg = msg + '\nOpponent places the cue ball anywhere they like.';
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'foul-toast';
+  toast.style.whiteSpace = 'pre-line';
+  toast.style.textAlign = 'center';
+  toast.style.lineHeight = '1.5';
+  toast.textContent = fullMsg;
+  wrap.appendChild(toast);
+  setTimeout(() => toast.remove(), isFirstFoul ? 5000 : 3500);
+}
+
+// ── WIN STREAK (persists across quick-play rematches) ──
+let sessionWinStreak = 0;
+// ── FOUL EXPLAINER (shown once per session) ──
+let seenFirstFoulExplainer = false;
+// ── REPLAY ──
+let activeReplayInterval = null;
+
+// ═══════════════════════════════════════════════════════════════════
+// BREAK RATING
+// ═══════════════════════════════════════════════════════════════════
+
+function showBreakRating() {
+  // Score the break: count balls pocketed + spread (avg distance between all balls vs start)
+  const pocketed = (G.ballsPocketedThisTurn || []).filter(b => !b.isCue).length;
+  const liveBalls = G.balls.filter(b => !b.pocketed && !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker);
+  // Spread: standard deviation of ball positions from center of table
+  const cx = TX + TW / 2, cy = TY + TH / 2;
+  const avgDist = liveBalls.reduce((s, b) => s + Math.hypot(b.x - cx, b.y - cy), 0) / (liveBalls.length || 1);
+  const maxDist = Math.hypot(TW / 2, TH / 2);
+  const spreadPct = Math.min(1, avgDist / (maxDist * 0.55));
+
+  // Score 0–100
+  const score = Math.round(spreadPct * 70 + pocketed * 12);
+  let grade, label, color;
+  if (score >= 85)      { grade = 'S'; label = 'Legendary Break!';  color = '#f39c12'; }
+  else if (score >= 70) { grade = 'A'; label = 'Excellent Break!';  color = '#2ecc71'; }
+  else if (score >= 55) { grade = 'B'; label = 'Solid Break';       color = '#3498db'; }
+  else if (score >= 38) { grade = 'C'; label = 'Decent Break';      color = '#95a5a6'; }
+  else                  { grade = 'D'; label = 'Weak Break';         color = '#e74c3c'; }
+
+  const wrap = document.getElementById('game-canvas-wrap');
+  if (!wrap) return;
+  document.querySelectorAll('.break-toast').forEach(t => t.remove());
+  const toast = document.createElement('div');
+  toast.className = 'break-toast';
+  // If ball-in-hand banner is visible, push break toast below it to avoid overlap
+  if (G.ballInHand) toast.style.top = '56px';
+  toast.innerHTML = `
+    <div class="break-grade" style="color:${color};">${grade}</div>
+    <div style="font-weight:600;">${label}</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">
+      ${pocketed > 0 ? `${pocketed} ball${pocketed>1?'s':''} pocketed · ` : ''}Spread ${Math.round(spreadPct*100)}%
+    </div>`;
+  wrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SLOW-MO REPLAY
+// ═══════════════════════════════════════════════════════════════════
+
+function playSlowMoReplay(onDone) {
+  if (!G.replayBuffer || G.replayBuffer.length < 6) { onDone(); return; }
+
+  const banner = document.getElementById('replay-banner');
+  if (banner) banner.style.display = 'block';
+  replayRunning = true;
+
+  // Save current ball state to restore after replay
+  const savedState = G.balls.map(b => ({ ...b }));
+  const frames = G.replayBuffer;
+  let frameIdx = 0;
+  const totalFrames = frames.length;
+
+  // Show only last 40 frames (most exciting part — near the pocket)
+  const startIdx = Math.max(0, totalFrames - 40);
+  let idx = startIdx;
+
+  if (activeReplayInterval) clearInterval(activeReplayInterval);
+  activeReplayInterval = setInterval(() => {
+    if (idx >= totalFrames) {
+      clearInterval(activeReplayInterval);
+      activeReplayInterval = null;
+      replayRunning = false;
+      G.balls.forEach((b, i) => {
+        if (savedState[i]) { b.x=savedState[i].x; b.y=savedState[i].y; b.pocketed=savedState[i].pocketed; }
+      });
+      if (banner) banner.style.display = 'none';
+      // Clear any stale status before handing off to endTurn/AI
+      setStatus('');
+      setTimeout(onDone, 200);
+      return;
+    }
+    // Apply snapshot to ball positions
+    const snap = frames[idx];
+    G.balls.forEach((b, i) => {
+      if (snap[i]) {
+        b.x = snap[i].x;
+        b.y = snap[i].y;
+        b.pocketed = snap[i].pocketed;
+      }
+    });
+    render();
+    idx++;
+  }, 65); // ~15fps = slow-mo from original ~60fps
+}
+
+function scheduleAITurn() {
+  if (G.aiThinkTimer) clearTimeout(G.aiThinkTimer);
+  const cp = G.players[G.currentPlayer];
+  const thinkMs = 900 + Math.random() * 700; // 0.9–1.6 s "thinking" delay
+  setStatus(`<span class="ai-thinking">${cp.avatar} ${cp.name} is thinking…</span>`);
+  G.aiThinkTimer = setTimeout(() => doAITurn(), thinkMs);
+}
+
+function doAITurn() {
+  if (!G || G.phase !== 'aiming') return;
+  const cp = G.players[G.currentPlayer];
+  if (!cp || !cp.isAI) return;
+
+  const char  = cp.aiChar;
+  const cue   = getCueBall();
+  if (!cue) return;
+
+  // ── 1. Pick target ball ──
+  const target = aiPickTarget(cp, char);
+  if (!target) {
+    // No legal ball found — try a fallback shot at anything on the table
+    const fallback = G.balls.find(b => !b.pocketed && !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker);
+    if (!fallback) {
+      // No balls left at all — game should already be over, but schedule a retry to unstick
+      G.aiThinkTimer = setTimeout(() => { if (G.phase === 'aiming') scheduleAITurn(); }, 800);
+      return;
+    }
+    aiExecuteShot(cue, fallback, char);
+    return;
+  }
+
+  // ── 2. Pick best pocket for target ──
+  const pocket = aiPickPocket(target, char);
+
+  // ── 3. Calculate ideal aim angle (cue → ghost ball position) ──
+  //    Ghost ball: position behind target on the line target→pocket
+  const toPocketDx = pocket.x - target.x;
+  const toPocketDy = pocket.y - target.y;
+  const toPocketDist = Math.sqrt(toPocketDx*toPocketDx + toPocketDy*toPocketDy);
+  const normX = toPocketDx / toPocketDist;
+  const normY = toPocketDy / toPocketDist;
+
+  // Ghost ball center: one ball-diameter behind the target along target→pocket line
+  const ghostX = target.x - normX * BALL_RADIUS * 2;
+  const ghostY = target.y - normY * BALL_RADIUS * 2;
+
+  // Ideal aim angle from cue to ghost ball
+  const idealAngle = Math.atan2(ghostY - cue.y, ghostX - cue.x);
+
+  // ── 4. Apply aim noise based on difficulty ──
+  const noise = (Math.random() - 0.5) * 2 * char.aimNoise;
+  G.aimAngle = idealAngle + noise;
+
+  // ── 5. Determine power ──
+  const distToBall = Math.sqrt((ghostX-cue.x)**2 + (ghostY-cue.y)**2);
+  const distScale  = Math.min(1, distToBall / (TW * 0.5));
+  const basePower  = char.powerMin + (char.powerMax - char.powerMin) * distScale;
+  G.power = Math.max(0.15, Math.min(1, basePower + (Math.random() - 0.5) * 0.15));
+
+  // ── 6. Smart players apply light spin ──
+  if (char.smartness > 0.6 && Math.random() < 0.4) {
+    G.spin.x = (Math.random() - 0.5) * 0.5;
+    G.spin.y = (Math.random() - 0.5) * 0.5;
+    drawSpin();
+  }
+
+  // ── 7. Show aim line briefly then shoot ──
+  G.aiShowingAim = true;  // enables aim line display for AI during shoot window
+  setStatus(`${cp.avatar} ${cp.name} shoots!`);
+  setTimeout(() => {
+    if (G.phase === 'aiming') {
+      G.aiShowingAim = false;
+      shoot();
+      setStatus(`${cp.avatar} ${cp.name} shot.`);
+      // Reset power bar display after AI shot
+      const pBar = document.getElementById('power-bar');
+      const pPct = document.getElementById('power-pct');
+      if (pBar) pBar.style.width = '0%';
+      if (pPct) pPct.textContent = '0%';
+    }
+  }, 300);
+}
+
+function aiPickTarget(cp, char) {
+  if (G.mode === 'cutthroat') {
+    // Target any ball that belongs to a non-eliminated opponent (not power balls)
+    const myNums = cp.ctGroup ? cp.ctGroup.nums : [];
+    const candidates = G.balls.filter(b =>
+      !b.pocketed && !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && !myNums.includes(b.num)
+    );
+    if (candidates.length === 0) return null;
+    // Smart AI picks the easiest shot on an opponent ball
+    if (Math.random() < char.smartness) {
+      const cue = getCueBall();
+      let best = null, bestScore = Infinity;
+      candidates.forEach(b => {
+        const dcb = Math.sqrt((b.x-cue.x)**2 + (b.y-cue.y)**2);
+        const dp  = POCKETS.reduce((mn, p) => Math.min(mn, Math.sqrt((b.x-p.x)**2+(b.y-p.y)**2)), Infinity);
+        // Prefer balls belonging to the opponent with the most balls remaining (biggest threat)
+        const ownerIdx = ctOwnerOf(b.num);
+        const threatBonus = ownerIdx >= 0 ? -ctBallsRemaining(ownerIdx) * 10 : 0;
+        const score = dcb + dp + threatBonus;
+        if (score < bestScore) { bestScore = score; best = b; }
+      });
+      return best;
+    }
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // ── 8-ball mode ──
+  const balls = G.balls.filter(b => !b.pocketed && !b.isCue && !b.isPowerBall && !b.isDecoy && !b.isBlackHoleMarker && b.num !== 8);
+  if (balls.length === 0) return null;
+
+  const isSolid  = cp.group === 'solid';
+  const isStripe = cp.group === 'stripe';
+  let candidates;
+  if (!cp.group) {
+    candidates = balls;
+  } else if (isSolid) {
+    candidates = balls.filter(b => b.solid);
+  } else {
+    candidates = balls.filter(b => !b.solid);
+  }
+  if (candidates.length === 0) {
+    return G.balls.find(b => !b.pocketed && b.num === 8) || null;
+  }
+  const cue = getCueBall();
+  if (Math.random() < char.smartness) {
+    let best = null, bestScore = Infinity;
+    candidates.forEach(b => {
+      const dcb = Math.sqrt((b.x-cue.x)**2 + (b.y-cue.y)**2);
+      const dp  = POCKETS.reduce((mn, p) => Math.min(mn, Math.sqrt((b.x-p.x)**2+(b.y-p.y)**2)), Infinity);
+      const score = dcb + dp;
+      if (score < bestScore) { bestScore = score; best = b; }
+    });
+    return best;
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function aiPickPocket(target, char) {
+  if (Math.random() < char.smartness) {
+    // Pick pocket that minimises distance from target
+    return POCKETS.reduce((best, p) => {
+      const db = Math.sqrt((target.x-best.x)**2 + (target.y-best.y)**2);
+      const dp = Math.sqrt((target.x-p.x)**2    + (target.y-p.y)**2);
+      return dp < db ? p : best;
+    });
+  }
+  return POCKETS[Math.floor(Math.random() * POCKETS.length)];
+}
+
+function aiExecuteShot(cue, target, char) {
+  const angle = Math.atan2(target.y - cue.y, target.x - cue.x);
+  G.aimAngle  = angle + (Math.random() - 0.5) * 2 * char.aimNoise;
+  G.power     = char.powerMin + Math.random() * (char.powerMax - char.powerMin);
+  setTimeout(() => { if (G.phase === 'aiming') shoot(); }, 300);
+}
+
+
+function endGame() {
+  if (G.aiThinkTimer) clearTimeout(G.aiThinkTimer);
+  loopRunning = false;
+  const winner   = G.players[G.winner];
+  const humanWon = winner && !winner.isAI && !winner.isGuest;
+  const anyHumanPlaying = G.players.some(p => !p.isAI);
+
+  if (anyHumanPlaying) {
+    setTimeout(() => { humanWon ? Audio.win() : Audio.lose(); }, 300);
+  }
+
+  // Update all human profiles in one pass (avoids double-save / double gamesPlayed)
+  let levelUpResult = null;
+  G.players.forEach(p => {
+    if (p.isAI || p.isGuest) return;
+    const prof = getProfile(p.profileId);
+    if (!prof) return;
+    ensureLevelFields(prof);
+    prof.gamesPlayed = (prof.gamesPlayed || 0) + 1;
+    if (p === winner) {
+      prof.gamesWon = (prof.gamesWon || 0) + 1;
+      const earned = awardCoins(prof, 20);
+      p.earnedCoins += earned;
+      levelUpResult = awardXP(prof, XP_PER_WIN);
+    }
+    saveProfile(prof);
+  });
+
+  const wName  = winner ? winner.name : 'Nobody';
+  const titleEl = document.getElementById('end-title-text');
+  if (titleEl) titleEl.textContent = humanWon ? '🏆 Victory!' : 'Game Over';
+
+  if (humanWon) { sessionWinStreak++; } else { sessionWinStreak = 0; }
+  const streakBadge = sessionWinStreak >= 2
+    ? `<div class="win-streak-badge">🔥 ${sessionWinStreak}-game win streak!</div>` : '';
+
+  document.getElementById('end-winner-text').innerHTML =
+    `${humanWon ? '' : '🏆 '}${wName} wins!${streakBadge}`;
+
+  // XP progress block shown after a human win
+  let xpBlock = '';
+  if (humanWon && levelUpResult) {
+    const prof = getProfile(winner.profileId);
+    if (prof) {
+      ensureLevelFields(prof);
+      const lv  = xpToLevel(prof.xp);
+      const pct = Math.round(xpProgress(prof.xp) * 100);
+      const br  = levelBracket(lv);
+      const toNext = lv < MAX_LEVEL ? xpForLevel(lv + 1) - prof.xp : 0;
+      xpBlock = `<div style="margin:10px auto;max-width:320px;background:var(--panel2);border-radius:8px;padding:10px 14px;border:1px solid #333;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span class="level-badge ${br.css}">LV ${lv} · ${br.label}</span>
+          <span style="font-size:11px;color:var(--text-dim)">+${XP_PER_WIN} XP</span>
+        </div>
+        <div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${pct}%"></div></div>
+        ${lv < MAX_LEVEL
+          ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;text-align:right">${toNext} XP to Level ${lv + 1}</div>`
+          : `<div style="font-size:10px;color:var(--gold);margin-top:4px;text-align:center">MAX LEVEL REACHED</div>`}
+      </div>`;
+    }
+  }
+
+  document.getElementById('end-results').innerHTML = G.players.map((p, i) => {
+    const isWinner = i === G.winner;
+    const groupInfo = G.mode === 'cutthroat'
+      ? (p.ctGroup ? p.ctGroup.label : '—')
+      : (p.group ? (p.group === 'solid' ? '⬤ Solids' : '◎ Stripes') : 'No group assigned');
+    const elimBadge = G.mode === 'cutthroat' && p.eliminated && !isWinner
+      ? `<span style="font-size:10px;color:#e74c3c;margin-left:6px;">eliminated</span>` : '';
+    return `<div class="end-row${isWinner ? ' winner' : ''}">
+      <span class="end-row-name" style="color:${p.color}">${p.avatar} ${p.name}${elimBadge}</span>
+      <span style="font-size:11px;color:var(--text-dim);margin-left:6px;">${groupInfo}</span>
+      <span class="end-row-coins">⬤ ${(p.earnedCoins||0)+(p.paidCoins||0)}</span>
+    </div>`;
+  }).join('') + xpBlock;
+
+  showScreen('end');
+
+  // Level-up toast fires after end screen is visible
+  if (levelUpResult && levelUpResult.leveledUp) {
+    setTimeout(() => showLevelUpToast(levelUpResult.newLevel), 700);
+  }
+}
+
+function showLevelUpToast(newLevel) {
+  const br = levelBracket(newLevel);
+  let perks = '';
+  if (newLevel === 6)       perks = 'Power balls now spawn on the table!<br>AI opponents upgraded to Amateur tier.';
+  else if (newLevel === 11) perks = 'AI opponents upgraded to Professional tier.<br>Aim line shortens significantly.';
+  else if (newLevel >= 15)  perks = 'Ghost ball removed. Pure skill from here.';
+  else                      perks = 'Aim challenge increased — keep grinding!';
+
+  const el = document.createElement('div');
+  el.className = 'levelup-toast';
+  el.innerHTML = `
+    <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Level Up!</div>
+    <div class="levelup-number">${newLevel}</div>
+    <div class="levelup-label">${br.label}</div>
+    <div class="levelup-perks">${perks}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.5s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 500);
+  }, 3800);
+}
+
+function useInventoryPowerBall(pbId) {
+  if (!G || G.phase !== 'aiming') return;
+  const cp = G.players[G.currentPlayer];
+  if (!cp || cp.isAI) return;
+  const prof = cp.isGuest ? null : getProfile(cp.profileId);
+  if (!prof) return;
+  ensureLevelFields(prof);
+  if ((prof.pbInventory[pbId] || 0) <= 0) return;
+
+  prof.pbInventory[pbId]--;
+  saveProfile(prof);
+
+  // Apply effect immediately
+  const def = POWER_BALL_DEFS.find(d => d.id === pbId);
+  if (def) def.apply(G.currentPlayer);
+
+  renderInventorySidebar();
+}
+
+function renderInventorySidebar() {
+  const el = document.getElementById('pball-inventory');
+  if (!el) return;
+  if (!G || !G.players) { el.style.display = 'none'; return; }
+  const cp = G.players[G.currentPlayer];
+  if (!cp || cp.isAI || G.phase !== 'aiming' || G.ballInHand) {
+    el.style.display = 'none';
+    return;
+  }
+  const prof = cp.isGuest ? null : getProfile(cp.profileId);
+  if (prof) ensureLevelFields(prof);
+  const inv = (prof && prof.pbInventory) || {};
+  const available = POWERBALL_SHOP_DEFS.filter(d => (inv[d.id] || 0) > 0);
+  if (available.length === 0) { el.style.display = 'none'; return; }
+
+  el.style.display = 'flex';
+  el.style.flexShrink = '0';
+  el.style.gap = '4px';
+  el.innerHTML = available.map(d =>
+    `<button class="pball-inv-btn" title="${d.name}: ${d.desc}" onclick="useInventoryPowerBall('${d.id}')">
+      ${d.icon} <span style="color:var(--gold);margin-left:2px;">${inv[d.id]}</span>
+    </button>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 3D RENDERING ENGINE  (Three.js r128)
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Three.js globals ──
+let THREE_LIB = null;   // set once script loads
+let threeReady = false;
+
+let threeScene, threeCamera, threeRenderer;
+let tableGroup, ballMeshes = {}, cueMesh, aimLineMesh, ghostBallMesh;
+let trailParticles = [];
+let ballInHandGhostMesh = null;
+let roomGroup;
+
+// Lighting refs for dynamic updates
+let spotLight1, spotLight2, spotLight3, rimLight, ambientLight;
+
+// ── Load Three.js then bootstrap ──
+(function loadThree() {
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  s.onload = () => { THREE_LIB = window.THREE; initThree(); threeReady = true; };
+  s.onerror = () => console.error('Three.js failed to load');
+  document.head.appendChild(s);
+})();
+
+// ── Coordinate mapping: 2D physics → 3D world ──
+// Physics uses canvas px coords. We map to a fixed world space [-5, 5] x [-2.5, 2.5]
+// tableGroup is offset by TABLE_WORLD_OFFSET_X in world X — must be added here.
+const WORLD_W = 10, WORLD_H = 5;
+const TABLE_WORLD_OFFSET_X = 1.0; // must match tableGroup.position.set(X, 0, 0)
+function physToWorld(px, py) {
+  if (!TW || !TH) return { x: TABLE_WORLD_OFFSET_X, z: 0 };
+  const wx = ((px - TX) / TW - 0.5) * WORLD_W + TABLE_WORLD_OFFSET_X;
+  const wz = ((py - TY) / TH - 0.5) * WORLD_H;
+  return { x: wx, z: wz };
+}
+
+// ── Init Three.js scene ──
+function initThree() {
+  const THREE = THREE_LIB;
+  const wrap = document.getElementById('game-canvas-wrap');
+
+  // Renderer
+  threeRenderer = new THREE.WebGLRenderer({
+    canvas: document.getElementById('gameCanvas'),
+    antialias: true,
+    powerPreference: 'high-performance',
+  });
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  threeRenderer.shadowMap.enabled = false;
+  threeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  threeRenderer.toneMappingExposure = 0.95;
+  threeRenderer.outputEncoding = THREE.sRGBEncoding;
+
+  // Scene
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0x111114);
+  threeScene.fog = new THREE.FogExp2(0x111114, 0.032);
+
+  // Camera — fixed broadcast 3/4 angle
+  const aspect = wrap.clientWidth / wrap.clientHeight;
+  threeCamera = new THREE.PerspectiveCamera(72, aspect, 0.1, 100);
+  threeCamera.position.set(-5.5, 4.5, 0);
+  threeCamera.lookAt(1.0, 0, 0);  // lookAt = tableGroup offset so table is centered in frame
+
+  // Resize canvas to fill wrap
+  resizeThree();
+
+  buildRoom();
+  buildTable();
+  buildLighting();
+
+  // Start the Three render loop (separate from physics gameLoop)
+  threeRenderLoop();
+}
+
+// ── Resize ──
+function resizeThree() {
+  if (!threeRenderer || !threeCamera) return;
+  const wrap = document.getElementById('game-canvas-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  // Guard against hidden/zero-size wrap (e.g. called before game screen is active)
+  if (!W || !H) return;
+  threeRenderer.setSize(W, H);
+  threeCamera.aspect = W / H;
+  threeCamera.updateProjectionMatrix();
+  // Keep physics canvas size in sync (used for pointer events)
+  const c = document.getElementById('gameCanvas');
+  c.style.width = W + 'px';
+  c.style.height = H + 'px';
+}
+
+// ── Casino room environment ──
+function buildRoom() {
+  const THREE = THREE_LIB;
+  roomGroup = new THREE.Group();
+  threeScene.add(roomGroup);
+
+  // Floor — dark herringbone parquet
+  const floorGeo = new THREE.PlaneGeometry(40, 40);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2010,
+    roughness: 0.55,
+    metalness: 0.05,
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.6;
+  floor.receiveShadow = true;
+  roomGroup.add(floor);
+
+  // Ceiling — very dark
+  const ceilGeo = new THREE.PlaneGeometry(40, 40);
+  const ceilMat = new THREE.MeshStandardMaterial({ color: 0x181410, roughness: 1 });
+  const ceil = new THREE.Mesh(ceilGeo, ceilMat);
+  ceil.rotation.x = Math.PI / 2;
+  ceil.position.y = 14;
+  roomGroup.add(ceil);
+
+  // Walls
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e1810, roughness: 0.85 });
+  const wallPositions = [
+    { x:0, z:-18, ry:0 }, { x:0, z:18, ry:Math.PI },
+    { x:-18, z:0, ry:Math.PI/2 }, { x:18, z:0, ry:-Math.PI/2 }
+  ];
+  wallPositions.forEach(({ x, z, ry }) => {
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(36, 18), wallMat);
+    w.position.set(x, 7, z);
+    w.rotation.y = ry;
+    w.receiveShadow = true;
+    roomGroup.add(w);
+  });
+
+  // Decorative gold trim strip along bottom of walls
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xc9a84c, roughness: 0.3, metalness: 0.9 });
+  [
+    { x:0, z:-17.9, ry:0 }, { x:0, z:17.9, ry:Math.PI },
+    { x:-17.9, z:0, ry:Math.PI/2 }, { x:17.9, z:0, ry:-Math.PI/2 }
+  ].forEach(({ x, z, ry }) => {
+    const trim = new THREE.Mesh(new THREE.PlaneGeometry(36, 0.12), trimMat);
+    trim.position.set(x, -1.54, z);
+    trim.rotation.y = ry;
+    roomGroup.add(trim);
+  });
+}
+
+// ── Table geometry ──
+function buildTable() {
+  const THREE = THREE_LIB;
+  tableGroup = new THREE.Group();
+  // Shift table forward (positive X = toward far end from camera) and up slightly
+  // so it fills more of the frame and sits closer to the HUD
+  tableGroup.position.set(1.0, 0, 0);
+  threeScene.add(tableGroup);
+
+  const railH   = 0.26;   // how tall the rail is above the felt
+  const hw = WORLD_W / 2, hh = WORLD_H / 2;
+
+  // ── Felt surface — MeshBasicMaterial so colour is EXACT, immune to all lighting ──
+  const feltGeo = new THREE.PlaneGeometry(WORLD_W, WORLD_H);
+  const feltMat = new THREE.MeshBasicMaterial({ color: 0x083318 });
+  const felt = new THREE.Mesh(feltGeo, feltMat);
+  felt.rotation.x = -Math.PI / 2;
+  felt.position.y = 0.002;
+  felt.name = 'felt';
+  tableGroup.add(felt);
+
+  // ── Table bed (solid base under felt) ──
+  const bedMat = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.9 });
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(WORLD_W, 0.12, WORLD_H), bedMat);
+  bed.position.y = -0.06;
+  tableGroup.add(bed);
+
+  // ── Rail material ──
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x4a2c0e, roughness: 0.5, metalness: 0.1 });
+  const inlayMat = new THREE.MeshStandardMaterial({ color: 0xc9a84c, roughness: 0.2, metalness: 0.9 });
+  const pocketMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+  // ── Dimensions ──
+  const cushionD   = 0.22;          // inner cushion depth (toward outside from felt edge)
+  const apronD     = 0.26;          // outer apron depth
+  const cushionH   = railH;
+  const apronH     = railH * 0.82;
+  const cushionOff = cushionD / 2;  // cushion centre offset from felt edge
+  const apronOff   = cushionD + apronD / 2;
+
+  // pR: pocket disc radius in world units.
+  // Ball sphere = 0.165. Target ratio 2:1 → disc radius = 0.330.
+  // discR = pR * 1.3, so pR = 0.330 / 1.3 = 0.254
+  const pR = 0.254;
+
+  // pNotch = discR so rail gap exactly matches pocket disc width
+  const pNotch = pR * 1.3;
+
+  // ── LONG SIDE CUSHIONS (near/far, along X) ──
+  // Two segments per side with gap at x=0 (side pocket) and at ±hw (corner pockets)
+  // Left segment:  x ∈ [-hw+pNotch, -pNotch]
+  // Right segment: x ∈ [+pNotch, +hw-pNotch]
+  const longSegW  = hw - 2 * pNotch;
+  const longSegCX = (hw - pNotch) / 2;
+
+  [-1, 1].forEach(side => {
+    const cz = side * (hh + cushionOff);
+    const az = side * (hh + apronOff);
+
+    // Left cushion segment
+    const lC = new THREE.Mesh(new THREE.BoxGeometry(longSegW, cushionH, cushionD), railMat);
+    lC.position.set(-longSegCX, cushionH / 2, cz);
+    tableGroup.add(lC);
+    const lCI = new THREE.Mesh(new THREE.BoxGeometry(longSegW, 0.02, cushionD), inlayMat);
+    lCI.position.set(-longSegCX, cushionH + 0.01, cz);
+    tableGroup.add(lCI);
+
+    // Right cushion segment
+    const rC = new THREE.Mesh(new THREE.BoxGeometry(longSegW, cushionH, cushionD), railMat);
+    rC.position.set(longSegCX, cushionH / 2, cz);
+    tableGroup.add(rC);
+    const rCI = new THREE.Mesh(new THREE.BoxGeometry(longSegW, 0.02, cushionD), inlayMat);
+    rCI.position.set(longSegCX, cushionH + 0.01, cz);
+    tableGroup.add(rCI);
+
+    // Black face plates on each cushion end — vertical planes facing the pocket center,
+    // masking the rectangular end face so the notch reads as a dark opening.
+    // Each plate is cushionD wide × cushionH tall, facing along X toward x=0.
+    const plateMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE_LIB.DoubleSide });
+    const plateGeo = new THREE.PlaneGeometry(cushionD, cushionH);
+    [
+      { ex: -pNotch,      facingRight: false },  // side pocket, left cushion end
+      { ex:  pNotch,      facingRight: true  },  // side pocket, right cushion end
+      { ex: -(hw-pNotch), facingRight: false },  // corner, left cushion end
+      { ex:  hw-pNotch,   facingRight: true  },  // corner, right cushion end
+    ].forEach(({ ex, facingRight }) => {
+      const plate = new THREE.Mesh(plateGeo, plateMat);
+      // Rotate so the plate faces along X (toward the gap / pocket center)
+      plate.rotation.y = facingRight ? -Math.PI / 2 : Math.PI / 2;
+      plate.position.set(ex, cushionH / 2, cz);
+      plate.renderOrder = 6;
+      tableGroup.add(plate);
+    });
+
+    // Outer apron — full length, no gaps
+    const aLong = new THREE.Mesh(new THREE.BoxGeometry(WORLD_W + apronD * 2, apronH, apronD), railMat);
+    aLong.position.set(0, apronH / 2, az);
+    tableGroup.add(aLong);
+    const aLongI = new THREE.Mesh(new THREE.BoxGeometry(WORLD_W + apronD * 2, 0.02, apronD), inlayMat);
+    aLongI.position.set(0, apronH + 0.01, az);
+    tableGroup.add(aLongI);
+  });
+
+  // ── SHORT END CUSHIONS (head/foot, along Z) ──
+  const shortSegD = WORLD_H - 2 * pNotch;
+
+  [-1, 1].forEach(side => {
+    const cx = side * (hw + cushionOff);
+    const ax = side * (hw + apronOff);
+
+    // Cushion segment
+    const sC = new THREE.Mesh(new THREE.BoxGeometry(cushionD, cushionH, shortSegD), railMat);
+    sC.position.set(cx, cushionH / 2, 0);
+    tableGroup.add(sC);
+    const sCI = new THREE.Mesh(new THREE.BoxGeometry(cushionD, 0.02, shortSegD), inlayMat);
+    sCI.position.set(cx, cushionH + 0.01, 0);
+    tableGroup.add(sCI);
+
+    // Black face plates on each end of the short cushion
+    const plateMat2 = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE_LIB.DoubleSide });
+    const plateGeo2 = new THREE.PlaneGeometry(cushionD, cushionH);
+    [
+      { ez: -(hh-pNotch), facingFar: false },
+      { ez:  (hh-pNotch), facingFar: true  },
+    ].forEach(({ ez, facingFar }) => {
+      const plate = new THREE.Mesh(plateGeo2, plateMat2);
+      plate.rotation.y = facingFar ? Math.PI : 0;
+      plate.position.set(cx, cushionH / 2, ez);
+      plate.renderOrder = 6;
+      tableGroup.add(plate);
+    });
+
+    // Outer apron — full depth, no gaps
+    const aShort = new THREE.Mesh(new THREE.BoxGeometry(apronD, apronH, WORLD_H), railMat);
+    aShort.position.set(ax, apronH / 2, 0);
+    tableGroup.add(aShort);
+    const aShortI = new THREE.Mesh(new THREE.BoxGeometry(apronD, 0.02, WORLD_H), inlayMat);
+    aShortI.position.set(ax, apronH + 0.01, 0);
+    tableGroup.add(aShortI);
+  });
+
+  // No separate corner blocks needed — pocket discs cover the corners cleanly
+
+  // ── Subtle felt lines ──
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0x155a27 });
+  const cLine = new THREE.Mesh(new THREE.PlaneGeometry(0.015, WORLD_H * 0.95), lineMat);
+  cLine.rotation.x = -Math.PI / 2;
+  cLine.position.set(0, 0.004, 0);
+  tableGroup.add(cLine);
+  const bLine = new THREE.Mesh(new THREE.PlaneGeometry(0.015, WORLD_H * 0.95), lineMat);
+  bLine.rotation.x = -Math.PI / 2;
+  bLine.position.set(-WORLD_W * 0.25, 0.004, 0);
+  tableGroup.add(bLine);
+
+  // ── Table legs ──
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x2a1a08, roughness: 0.6, metalness: 0.1 });
+  [[-hw + 0.3, -hh + 0.3],[hw - 0.3, -hh + 0.3],[-hw + 0.3, hh - 0.3],[hw - 0.3, hh - 0.3]].forEach(([x,z]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.5, 12), legMat);
+    leg.position.set(x, -0.75, z);
+    tableGroup.add(leg);
+  });
+
+  // ── Pockets — built into table ──
+  buildPockets(pR);
+
+  // ── Hanging lamp ──
+  buildHangingLamp();
+}
+
+function buildPockets(pR) {
+  const THREE = THREE_LIB;
+  const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000, depthWrite: true });
+  const hw = WORLD_W / 2, hh = WORLD_H / 2;
+  pR = pR || 0.254;
+  const discR = pR * 1.3;  // = 0.330 = 2× ball sphere radius (0.165)
+
+  // Pocket centres sit at the cushion INNER face — the felt boundary (±hw, ±hh).
+  // Corner pockets are at the exact corner of the felt rectangle.
+  // Side pockets are at x=0 on the long rail face.
+  const cornerPositions = [
+    { x: -hw, z: -hh }, { x: hw, z: -hh },
+    { x: -hw, z:  hh }, { x: hw, z:  hh },
+  ];
+  const sidePositions = [
+    { x: 0, z: -hh },
+    { x: 0, z:  hh },
+  ];
+
+  [...cornerPositions, ...sidePositions].forEach(({ x, z }) => {
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(discR, 32), holeMat);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.set(x, 0.005, z);
+    disc.renderOrder = 20;
+    tableGroup.add(disc);
+  });
+}
+
+function buildHangingLamp() {
+  // Lamp geometry removed — light source kept in buildLighting, no visible fixture
+}
+
+// ── Lighting — casino dramatic ──
+function buildLighting() {
+  const THREE = THREE_LIB;
+
+  // Very dim ambient — casino shadows are deep
+  ambientLight = new THREE.AmbientLight(0xffeedd, 0.18);
+  threeScene.add(ambientLight);
+
+  // Main overhead spotlight from lamp — warm golden
+  spotLight1 = new THREE.SpotLight(0xfff8e8, 2.8, 24, Math.PI * 0.32, 0.45, 1.2);
+  spotLight1.position.set(1.0, 5.2, 0);  // over table centre-ish
+  spotLight1.target.position.set(1.0, 0, 0);
+  spotLight1.castShadow = false;
+  threeScene.add(spotLight1);
+  threeScene.add(spotLight1.target);
+
+  // Secondary fill from slightly off-center — gives depth to balls
+  spotLight2 = new THREE.SpotLight(0xffe8b8, 1.0, 20, Math.PI * 0.38, 0.5, 1.4);
+  spotLight2.position.set(0, 6, -3);  // light from the far rail side
+  spotLight2.target.position.set(0, 0, 0);
+  spotLight2.castShadow = false;
+  threeScene.add(spotLight2);
+  threeScene.add(spotLight2.target);
+
+  // Third light — warm from the rack end to illuminate balls for camera
+  spotLight3 = new THREE.SpotLight(0xffd880, 0.8, 18, Math.PI * 0.42, 0.6, 1.6);
+  spotLight3.position.set(5, 5.5, 0);
+  spotLight3.target.position.set(0, 0, 0);
+  spotLight3.castShadow = false;
+  threeScene.add(spotLight3);
+  threeScene.add(spotLight3.target);
+
+  // Rim light — cool blue from behind/below camera for silhouette depth
+  rimLight = new THREE.DirectionalLight(0x6688cc, 0.30);
+  rimLight.position.set(0, 2, 10);
+  threeScene.add(rimLight);
+
+  // Subtle point lights at pocket positions for ambience
+  const hw = WORLD_W / 2, hh = WORLD_H / 2;
+  [[-hw,-hh],[hw,-hh],[-hw,hh],[hw,hh]].forEach(([x,z]) => {
+    const p = new THREE.PointLight(0xc9a84c, 0.12, 4);
+    p.position.set(x, 0.3, z);
+    threeScene.add(p);
+  });
+}
+
+// ── Build / update ball meshes ──
+function syncBallMeshes() {
+  if (!threeReady || !THREE_LIB || !G.balls) return;
+  const THREE = THREE_LIB;
+
+  G.balls.forEach(ball => {
+    const key = ball.id ?? ball.num;
+    const pos = physToWorld(ball.x, ball.y);
+
+    if (ball.pocketed) {
+      if (ballMeshes[key]) {
+        ballMeshes[key].visible = false;
+      }
+      return;
+    }
+
+    if (!ballMeshes[key]) {
+      // Create mesh
+      const geo = new THREE.SphereGeometry(0.165, 32, 32);
+      let mat;
+
+      if (ball.isCue) {
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xf8f4ec, roughness: 0.08, metalness: 0.0, envMapIntensity: 1.2,
+        });
+      } else if (ball.isPowerBall) {
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(ball.powerBallDef.color),
+          roughness: 0.1, metalness: 0.3,
+          emissive: new THREE.Color(ball.powerBallDef.color),
+          emissiveIntensity: 0.4,
+        });
+      } else if (ball.isBlackHoleMarker) {
+        // Dark pulsing void — rendered as a flat black disc with slight emissive ring
+        mat = new THREE.MeshStandardMaterial({
+          color: 0x050505, roughness: 1.0, metalness: 0.0,
+          emissive: new THREE.Color(0x4a00a0), emissiveIntensity: 0.8,
+          transparent: true, opacity: 0.85,
+        });
+      } else if (ball.isDecoy) {
+        // Semi-transparent with a question-mark tint — clearly fake but positioned like a real ball
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(ball.color || '#888888'),
+          roughness: 0.15, metalness: 0.1,
+          transparent: true, opacity: 0.65,
+          emissive: new THREE.Color(0xff69b4), emissiveIntensity: 0.25,
+        });
+      } else {
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffffff, roughness: 0.08, metalness: 0.05, envMapIntensity: 1.0,
+        });
+      }
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = false;
+
+      // Number decal — canvas texture (skip for special balls)
+      if (!ball.isCue && !ball.isPowerBall && !ball.isDecoy && !ball.isBlackHoleMarker) {
+        addBallDecal(mesh, ball, THREE);
+      }
+
+      // Decoy: render a "?" label so players can recognise it in play
+      if (ball.isDecoy) {
+        const sc = document.createElement('canvas');
+        sc.width = 64; sc.height = 64;
+        const sx = sc.getContext('2d');
+        sx.fillStyle = 'rgba(255,255,255,0.85)';
+        sx.beginPath(); sx.arc(32,32,26,0,Math.PI*2); sx.fill();
+        sx.fillStyle = '#d63784';
+        sx.font = 'bold 30px Arial';
+        sx.textAlign = 'center'; sx.textBaseline = 'middle';
+        sx.fillText('?', 32, 33);
+        const stex = new THREE.CanvasTexture(sc);
+        const smat = new THREE.SpriteMaterial({ map:stex, transparent:true, opacity:0.9, depthTest:false });
+        const sprite = new THREE.Sprite(smat);
+        sprite.scale.set(0.26, 0.26, 1);
+        sprite.position.set(0, 0.27, 0);
+        mesh.add(sprite);
+      }
+
+      // Black hole: add a visible ring/aura
+      if (ball.isBlackHoleMarker) {
+        const ringGeo = new THREE.TorusGeometry(0.32, 0.04, 8, 32);
+        const ringMat = new THREE.MeshStandardMaterial({
+          color: 0x9b59b6, emissive: new THREE.Color(0x9b59b6), emissiveIntensity: 1.2,
+          roughness: 0.1, transparent: true, opacity: 0.7,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.name = 'bhRing';
+        mesh.add(ring);
+      }
+
+      // Cutthroat ownership ring (skip for special balls)
+      if (!ball.isCue && !ball.isPowerBall && !ball.isDecoy && !ball.isBlackHoleMarker && G.mode === 'cutthroat') {
+        const ownerIdx = G.players.findIndex(p => p.ctGroup && p.ctGroup.nums.includes(ball.num));
+        if (ownerIdx >= 0) {
+          const ringGeo = new THREE.TorusGeometry(0.185, 0.018, 8, 32);
+          const ringMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(G.players[ownerIdx].color), roughness: 0.3, metalness: 0.6,
+          });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          mesh.add(ring);
+        }
+      }
+
+      threeScene.add(mesh);
+      ballMeshes[key] = mesh;
+
+      // ── Number sprite (billboard, always faces camera) ──
+      if (!ball.isCue && !ball.isPowerBall) {
+        const spriteKey = key + '_label';
+        const sc = document.createElement('canvas');
+        sc.width = 64; sc.height = 64;
+        const sx = sc.getContext('2d');
+        // Background circle
+        sx.fillStyle = 'rgba(255,255,255,0.92)';
+        sx.beginPath(); sx.arc(32, 32, 28, 0, Math.PI * 2); sx.fill();
+        // Number text
+        sx.fillStyle = '#111';
+        sx.font = 'bold 26px Arial';
+        sx.textAlign = 'center'; sx.textBaseline = 'middle';
+        sx.fillText(ball.num, 32, 33);
+        const stex = new THREE.CanvasTexture(sc);
+        const smat = new THREE.SpriteMaterial({
+          map: stex, transparent: true, opacity: 0.95,
+          depthTest: false,  // always render on top of ball
+        });
+        const sprite = new THREE.Sprite(smat);
+        sprite.scale.set(0.22, 0.22, 1);
+        sprite.position.set(0, 0.26, 0); // slightly above ball centre
+        mesh.add(sprite); // parent to mesh so it moves with the ball
+        ballMeshes[spriteKey] = sprite;
+      }
+    }
+
+    const mesh = ballMeshes[key];
+    mesh.visible = true;
+    mesh.position.set(pos.x, 0.175, pos.z);
+
+    // Show number label only when ball is stationary (racked / at rest)
+    const spriteKey = key + '_label';
+    if (ballMeshes[spriteKey]) {
+      const speed2 = Math.sqrt((ball.vx||0)**2 + (ball.vy||0)**2);
+      ballMeshes[spriteKey].visible = speed2 < 0.5;
+    }
+
+    // Rotate ball based on actual physics velocity (only when moving)
+    const speed = Math.sqrt((ball.vx||0)**2 + (ball.vy||0)**2);
+    if (speed > 0.15) {
+      const rollAngle = speed * 0.018;
+      mesh.rotation.x += Math.sin(Math.atan2(ball.vy, ball.vx)) * rollAngle;
+      mesh.rotation.z += Math.cos(Math.atan2(ball.vy, ball.vx)) * rollAngle;
+    }
+    if (ball.isPowerBall) {
+      mesh.rotation.y += 0.025;
+      const pulse = 0.4 + 0.6 * Math.sin(Date.now() / 250);
+      mesh.material.emissiveIntensity = 0.3 + pulse * 0.5;
+    }
+    // Black hole marker: spin the aura ring and pulse
+    if (ball.isBlackHoleMarker) {
+      const ring = mesh.getObjectByName('bhRing');
+      if (ring) ring.rotation.z += 0.04;
+      const bhPulse = 0.6 + 0.4 * Math.sin(Date.now() / 180);
+      mesh.material.emissiveIntensity = 0.5 + bhPulse * 0.8;
+    }
+    // Decoy: shimmer opacity to signal it's not real
+    if (ball.isDecoy) {
+      mesh.material.opacity = 0.5 + 0.2 * Math.sin(Date.now() / 400);
+    }
+  });
+}
+
+function addBallDecal(mesh, ball, THREE) {
+  // Draw number onto a canvas texture, apply as a second smaller sphere overlay
+  const size = 128;
+  const cvs = document.createElement('canvas');
+  cvs.width = size; cvs.height = size;
+  const ctx = cvs.getContext('2d');
+
+  if (ball.stripe) {
+    // Striped: white base, colored stripe
+    ctx.fillStyle = '#f0e8d0';
+    ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = ball.color;
+    ctx.fillRect(0, size*0.28, size, size*0.44);
+    // Clip to circle
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.fillStyle = ball.color;
+    ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+  }
+
+  // White number circle
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.beginPath(); ctx.arc(size/2,size/2,size*0.26,0,Math.PI*2); ctx.fill();
+
+  // Number
+  ctx.fillStyle = '#111';
+  ctx.font = `bold ${size*0.28}px Arial`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(ball.num, size/2, size/2 + 2);
+
+  const tex = new THREE.CanvasTexture(cvs);
+  mesh.material.map = tex;
+  mesh.material.needsUpdate = true;
+}
+
+// ── Cue stick 3D ──
+function syncCueStick() {
+  if (!threeReady || !THREE_LIB) return;
+  const THREE = THREE_LIB;
+  const cp = G.players && G.players[G.currentPlayer];
+
+  // Show for human during aiming + briefly during shooting so cue doesn't snap away.
+  // Show for AI only during their 300ms aim-display window.
+  const humanShow = (G.phase === 'aiming' || G.phase === 'shooting') && cp && !cp.isAI && !G.ballInHand;
+  const aiShow    = G.phase === 'aiming' && cp && cp.isAI && G.aiShowingAim;
+  const showCue   = humanShow || aiShow;
+
+  if (!showCue) { if (cueMesh) cueMesh.visible = false; return; }
+
+  const cue = getCueBall();
+  if (!cue) { if (cueMesh) cueMesh.visible = false; return; }
+
+  const skin = CUE_SKINS.find(s => s.id === (cp ? cp.activeCue : 'classic')) || CUE_SKINS[0];
+
+  if (!cueMesh) {
+    // Tapered cylinder — narrow tip (top, y=0 after translate) to wide butt
+    const cueGeo = new THREE.CylinderGeometry(0.010, 0.030, 3.6, 14);
+    cueGeo.translate(0, -1.8, 0); // y=0 is the tip
+    const cueMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(skin.color), roughness: 0.30, metalness: 0.08,
+    });
+    cueMesh = new THREE.Mesh(cueGeo, cueMat);
+    cueMesh.castShadow = true;
+    threeScene.add(cueMesh);
+
+    // Leather tip cap
+    const tipMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.013, 10, 10),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(skin.tip), roughness: 0.55 })
+    );
+    tipMesh.name = 'cueTip';
+    cueMesh.add(tipMesh);
+
+    // Dark butt wrap
+    const wrapMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.031, 0.031, 0.3, 14),
+      new THREE.MeshStandardMaterial({ color: 0x1a0a00, roughness: 0.6 })
+    );
+    wrapMesh.position.set(0, -3.45, 0);
+    cueMesh.add(wrapMesh);
+  }
+
+  cueMesh.visible = true;
+  cueMesh.material.color.set(skin.color);
+  const tipChild = cueMesh.getObjectByName('cueTip');
+  if (tipChild) tipChild.material.color.set(skin.tip);
+
+  const pullback  = G.power * 0.8;
+  const tipOffset = 0.20 + pullback;
+  const pos       = physToWorld(cue.x, cue.y);
+  const angle     = G.aimAngle;
+
+  cueMesh.position.set(
+    pos.x - Math.cos(angle) * tipOffset,
+    0.24,
+    pos.z - Math.sin(angle) * tipOffset
+  );
+  cueMesh.rotation.set(-0.08, -angle - Math.PI / 2, 0); // slight downward tilt
+
+  if (tipChild) {
+    const glow = G.power > 0.2 ? G.power : 0;
+    tipChild.material.emissive = new THREE.Color(1, 0.45, 0.1);
+    tipChild.material.emissiveIntensity = glow * 2.0;
+  }
+}
+
+// ── Aim line — scaled by player level ──
+function syncAimLine() {
+  if (!threeReady || !THREE_LIB) return;
+  const THREE = THREE_LIB;
+  const cp = G.players && G.players[G.currentPlayer];
+  const showAim = G.phase === 'aiming' && cp && !G.ballInHand &&
+    (!cp.isAI || G.aiShowingAim);
+
+  if (aimLineMesh) { threeScene.remove(aimLineMesh); aimLineMesh = null; }
+  if (ghostBallMesh) { ghostBallMesh.visible = false; }
+  if (!showAim) return;
+
+  const cue = getCueBall();
+  if (!cue) return;
+
+  // Get aim config from human level (AI always gets full line)
+  let cfg = { lineOpacity: 0.55, lineLength: 1.0, ghostOpacity: 0.42 };
+  if (cp && !cp.isAI) {
+    // Sniper power ball: one-turn perfect aim regardless of level
+    if (G.sniperActive && G.sniperOwner === G.currentPlayer) {
+      cfg = { lineOpacity: 0.70, lineLength: 1.0, ghostOpacity: 0.55 };
+    } else {
+      const prof = cp.isGuest ? null : getProfile(cp.profileId);
+      if (prof) ensureLevelFields(prof);
+      cfg = aimConfig(prof ? xpToLevel(prof.xp) : 1);
+    }
+  }
+
+  const angle = G.aimAngle;
+  const dx = Math.cos(angle), dz = Math.sin(angle);
+  const hit    = raycast(cue.x, cue.y, dx, dz, cue);
+  const origin = physToWorld(cue.x, cue.y);
+
+  const fullEnd = hit
+    ? physToWorld(hit.x - dx * BALL_RADIUS, hit.y - dz * BALL_RADIUS)
+    : physToWorld(cue.x + dx * 320, cue.y + dz * 320);
+
+  // Truncate line to cfg.lineLength fraction
+  const endPt = {
+    x: origin.x + (fullEnd.x - origin.x) * cfg.lineLength,
+    z: origin.z + (fullEnd.z - origin.z) * cfg.lineLength,
+  };
+
+  const points = [];
+  for (let i = 0; i <= 28; i++) {
+    const t = i / 28;
+    points.push(new THREE.Vector3(
+      origin.x + (endPt.x - origin.x) * t, 0.045,
+      origin.z + (endPt.z - origin.z) * t
+    ));
+  }
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: cfg.lineOpacity });
+  aimLineMesh = new THREE.Line(lineGeo, lineMat);
+  threeScene.add(aimLineMesh);
+
+  // Ghost ball — only if line reaches contact AND opacity > 0
+  if (hit && cfg.lineLength >= 1.0 && cfg.ghostOpacity > 0) {
+    if (!ghostBallMesh) {
+      ghostBallMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.165, 24, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, roughness: 0.1 })
+      );
+      threeScene.add(ghostBallMesh);
+    }
+    ghostBallMesh.material.opacity = cfg.ghostOpacity;
+    const gp = physToWorld(hit.x, hit.y);
+    ghostBallMesh.position.set(gp.x, 0.175, gp.z);
+    ghostBallMesh.visible = true;
+
+    // Deflection line — only at levels where ghost is meaningfully visible
+    if (cfg.ghostOpacity >= 0.28) {
+      const hitBall = G.balls.find(b => !b.pocketed && !b.isCue &&
+        Math.hypot(b.x - hit.x, b.y - hit.y) < BALL_RADIUS * 2.5);
+      if (hitBall) {
+        const toBallX = hitBall.x - hit.x, toBallZ = hitBall.y - hit.y;
+        const len = Math.hypot(toBallX, toBallZ);
+        if (len > 0) {
+          const nx = toBallX / len, nz = toBallZ / len;
+          const hbPos = physToWorld(hitBall.x, hitBall.y);
+          const defPts = [
+            new THREE.Vector3(hbPos.x, 0.045, hbPos.z),
+            new THREE.Vector3(hbPos.x + nx * 1.2 * cfg.lineLength, 0.045, hbPos.z + nz * 1.2 * cfg.lineLength),
+          ];
+          const defLine = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(defPts),
+            new THREE.LineBasicMaterial({ color: 0xffc840, transparent: true, opacity: cfg.lineOpacity * 0.8 })
+          );
+          defLine.name = 'defLine';
+          if (aimLineMesh) aimLineMesh.add(defLine);
+        }
+      }
+    }
+  }
+}
+
+// ── Ball trail ──
+function syncBallTrail() {
+  if (!threeReady || !THREE_LIB || !G.ballTrail) return;
+  const THREE = THREE_LIB;
+
+  // Remove old trail particles
+  trailParticles.forEach(p => threeScene.remove(p));
+  trailParticles = [];
+
+  if (G.phase !== 'shooting') return;
+  const trail = G.ballTrail;
+  for (let i = 1; i < trail.length; i += 3) {
+    const alpha = (i / trail.length) * 0.55;
+    const scale = (i / trail.length) * 0.12;
+    const pos = physToWorld(trail[i].x, trail[i].y);
+    const geo = new THREE.SphereGeometry(scale, 6, 6);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: alpha });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.set(pos.x, 0.175, pos.z);
+    threeScene.add(p);
+    trailParticles.push(p);
+  }
+}
+
+// ── Ball-in-hand ghost ──
+function syncBallInHandGhost() {
+  if (!threeReady || !THREE_LIB) return;
+  const THREE = THREE_LIB;
+
+  if (!G.ballInHand) {
+    if (ballInHandGhostMesh) ballInHandGhostMesh.visible = false;
+    return;
+  }
+
+  if (!ballInHandGhostMesh) {
+    ballInHandGhostMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.165, 24, 24),
+      new THREE.MeshStandardMaterial({
+        color: 0xf8f4ec, transparent: true, opacity: 0.5,
+        roughness: 0.1,
+      })
+    );
+    threeScene.add(ballInHandGhostMesh);
+  }
+
+  const mx = Math.max(TX + BALL_RADIUS + 2, Math.min(TX + TW - BALL_RADIUS - 2,
+    ballInHandMouseX ?? (TX + TW * 0.22)));
+  const my = Math.max(TY + BALL_RADIUS + 2, Math.min(TY + TH - BALL_RADIUS - 2,
+    ballInHandMouseY ?? (TY + TH * 0.5)));
+  const blocked = G.balls.some(b => !b.pocketed && !b.isCue &&
+    Math.hypot(b.x - mx, b.y - my) < BALL_RADIUS * 2.2);
+
+  const pos = physToWorld(mx, my);
+  ballInHandGhostMesh.position.set(pos.x, 0.175, pos.z);
+  ballInHandGhostMesh.material.color.set(blocked ? 0xff4444 : 0xf8f4ec);
+  ballInHandGhostMesh.material.opacity = blocked ? 0.4 : 0.55;
+  ballInHandGhostMesh.visible = true;
+}
+
+// ── Update felt color from shop skin ──
+function updateFeltColor() {
+  if (!threeReady || !threeScene) return;
+  const THREE = THREE_LIB;
+  const feltMesh = tableGroup && tableGroup.getObjectByName('felt');
+  if (!feltMesh) return;
+  // MeshBasicMaterial — just set colour directly, no emissive
+  feltMesh.material.color.set(getFeltColor());
+  feltMesh.material.needsUpdate = true;
+}
+
+// ── Main Three.js render loop ──
+function threeRenderLoop() {
+  requestAnimationFrame(threeRenderLoop);
+  if (!threeReady || !G.balls) return;
+  syncBallMeshes();
+  syncCueStick();
+  syncAimLine();
+  syncBallTrail();
+  syncBallInHandGhost();
+  updateFeltColor();
+  threeRenderer.render(threeScene, threeCamera);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STUB 2D FUNCTIONS (kept for compatibility — Three handles visuals)
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Scroll-wheel zoom ──
+// Moves camera along its current view direction — preserves angle, just zooms.
+// Clamped so player can't zoom out past the default or clip through the table.
+(function initScrollZoom() {
+  const ZOOM_SPEED  = 0.0012;  // fraction of view vector per scroll unit
+  const MIN_DIST    = 3.5;     // closest allowed distance from lookAt point
+  const MAX_DIST    = 14.0;    // furthest allowed
+  const LOOKAT      = { x: 1.0, y: 0, z: 0 }; // must match threeCamera.lookAt
+
+  document.getElementById('gameCanvas').addEventListener('wheel', e => {
+    if (!threeCamera) return;
+    e.preventDefault();
+
+    const cam = threeCamera;
+    // View direction vector (camera → lookAt), normalized
+    const dx = LOOKAT.x - cam.position.x;
+    const dy = LOOKAT.y - cam.position.y;
+    const dz = LOOKAT.z - cam.position.z;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if (dist < 0.001) return;
+    const nx = dx/dist, ny = dy/dist, nz = dz/dist;
+
+    // Move camera toward lookAt on scroll-down (zoom in), away on scroll-up
+    const delta = e.deltaY * ZOOM_SPEED * dist;
+    const newDist = Math.max(MIN_DIST, Math.min(MAX_DIST, dist + delta));
+    const scale = (dist - newDist) / dist;
+
+    cam.position.x += nx * dist * scale;
+    cam.position.y += ny * dist * scale;
+    cam.position.z += nz * dist * scale;
+  }, { passive: false });
+})();
+
+function drawTable() {
+  // No-op — Three.js handles table rendering
+}
+
+function getFeltColor() {
+  const cp = G.players && G.players[G.currentPlayer];
+  if (!cp) return '#2d6a4f';
+  const felt = FELT_SKINS.find(f => f.id === cp.activeFelt);
+  return felt ? felt.color : '#0a3d1a';
+}
+
+// Build a lookup: ballNum → player index (cutthroat only), cached per frame
+function buildCtOwnerMap() {
+  if (G.mode !== 'cutthroat' || !G.players) return null;
+  const map = {};
+  G.players.forEach((p, i) => {
+    if (p.ctGroup) p.ctGroup.nums.forEach(n => { map[n] = i; });
+  });
+  return map;
+}
+
+function drawBalls() {
+  // No-op — Three.js handles ball rendering
+}
+
+function lightenColor(hex, amt) {
+  let r=parseInt(hex.slice(1,3),16)+amt, g=parseInt(hex.slice(3,5),16)+amt, b=parseInt(hex.slice(5,7),16)+amt;
+  r=Math.min(255,r); g=Math.min(255,g); b=Math.min(255,b);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function drawCueStick() {
+  // No-op — Three.js handles cue stick rendering
+}
+
+function drawAimLine(cue, angle) {
+  // No-op — Three.js syncAimLine() handles all aim line rendering.
+  // ctx2d is null (WebGL owns the canvas). Never add 2D canvas code here.
+}
+
+function raycast(ox, oy, dx, dy, ignore) {
+  // Find closest ball hit
+  let minT = 400;
+  let hitX = null, hitY = null;
+  G.balls.forEach(b => {
+    if (b.pocketed || b === ignore) return;
+    // Sphere-ray intersection
+    const fx = ox - b.x, fy = oy - b.y;
+    const a2 = dx*dx + dy*dy;
+    const b2 = 2*(fx*dx + fy*dy);
+    const c2 = fx*fx+fy*fy - (BALL_RADIUS*2)*(BALL_RADIUS*2);
+    const disc = b2*b2 - 4*a2*c2;
+    if (disc < 0) return;
+    const t = (-b2 - Math.sqrt(disc))/(2*a2);
+    if (t > 0 && t < minT) { minT=t; hitX=ox+dx*t; hitY=oy+dy*t; }
+  });
+  // Wall hit
+  [
+    { t:(TX-ox)/dx }, { t:(TX+TW-ox)/dx },
+    { t:(TY-oy)/dy }, { t:(TY+TH-oy)/dy }
+  ].forEach(({t}) => {
+    if (t>0 && t<minT) { minT=t; hitX=ox+dx*t; hitY=oy+dy*t; }
+  });
+  return hitX !== null ? {x:hitX,y:hitY} : null;
+}
+
+// ── MAIN RENDER ──
+function render() {
+  // Three.js threeRenderLoop() handles all visual output.
+}
+
+function drawBallTrail(c) {
+  // No-op — Three.js syncBallTrail() handles this.
+}
+
+// Ghost cue ball that follows cursor/touch during ball-in-hand
+let ballInHandMouseX = null, ballInHandMouseY = null;
+
+function drawBallInHandGhost(c) {
+  // No-op — Three.js syncBallInHandGhost() handles this.
+}
+
+// ── GAME LOOP ──
+let lastTime = 0;
+let loopRunning = false;
+let replayRunning = false; // when true, gameLoop skips render (replay owns the canvas)
+
+function gameLoop(ts) {
+  if (!G.balls) return;
+  const dt = ts - lastTime; lastTime = ts;
+  // Run physics during 'shooting', 'settling', AND 'gameover' —
+  // gameover can be set mid-shot (e.g. 8-ball + scratch same step),
+  // balls must keep moving until they stop so the settlement check fires.
+  if (G.phase === 'shooting' || G.phase === 'settling' || G.phase === 'gameover') {
+    for (let i=0; i<3; i++) physicsStep();
+  }
+  if (!replayRunning) render();
+  if (G.phase !== 'gameover') requestAnimationFrame(gameLoop);
+  else loopRunning = false;
+}
+
+// ── RESIZE ──
+window.addEventListener('resize', () => {
+  if (document.getElementById('screen-game').classList.contains('active')) {
+    calcTableLayout();
+    // Reposition cue ball if needed
+    const cue = getCueBall();
+    if (cue && cue.x === 0) { cue.x=TX+TW*0.25; cue.y=TY+TH/2; }
+  }
+});
+
+// ── INIT ──
+drawSpin();
+</script>
+</body>
+</html>
