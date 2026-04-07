@@ -520,8 +520,9 @@
     <!-- Spin indicator -->
     <div style="text-align:center;">
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">Spin</div>
-      <canvas id="spinCanvas" width="60" height="60" style="border-radius:50%;border:1px solid #333;cursor:pointer;"></canvas>
+      <canvas id="spinCanvas" width="60" height="60" style="border-radius:50%;border:1px solid #333;cursor:pointer;" title="Click to set cue ball spin"></canvas>
       <div style="font-size:10px;color:var(--text-dim);margin-top:2px;" id="spin-label">Center</div>
+      <div style="font-size:9px;color:#555;margin-top:2px;line-height:1.3;">Click to add<br>English/spin</div>
     </div>
 
     <button class="btn btn-outline btn-sm" onclick="openShopInGame()" style="margin-top:auto;">🛒 Shop</button>
@@ -1182,10 +1183,12 @@ function renderShop(ctx) {
   shopContext = ctx;
   if (ctx === 'solo') {
     const profiles = loadProfiles();
-    shopPlayerProfile = profiles[0] || null;
+    // Prefer the profile that was last used in a game; fall back to first profile
+    const lastId = G && G.players && G.players[0] && G.players[0].profileId;
+    shopPlayerProfile = (lastId && profiles.find(p => p.id === lastId)) || profiles[0] || null;
     const w = document.getElementById('shop-solo-wallet');
     w.textContent = shopPlayerProfile
-      ? `Wallet: ⬤ ${totalCoins(shopPlayerProfile)} coins`
+      ? `Wallet: ⬤ ${totalCoins(shopPlayerProfile)} coins  (${shopPlayerProfile.name})`
       : 'No profile selected';
     renderShopTab(shopActiveTab, 'solo');
   }
@@ -1286,15 +1289,68 @@ function buyCoinPackage(coins, price) {
 }
 
 function openShopInGame() {
-  // In-game shop: quick modal overlay
+  const cp = G.players && G.players[G.currentPlayer];
+  if (!cp || cp.isAI) {
+    showModal('Shop', 'Shop is available between turns. Wait for your turn!');
+    return;
+  }
+  const profile = !cp.isGuest ? getProfile(cp.profileId) : null;
+  if (!profile) {
+    showModal('Shop', 'Guest players cannot access the shop. Create a profile from the main menu.');
+    return;
+  }
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal" style="max-width:500px;width:95%;">
-      <h3>🛒 Shop</h3>
-      <p style="color:var(--text-dim);font-size:13px;">Full shop available from main menu. In-game purchases coming soon.</p>
-      <div class="modal-btns"><button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">Close</button></div>
-    </div>`;
+
+  function buildShopContent(tab) {
+    let items, ownedKey, activeKey;
+    if (tab === 'cues')  { items = CUE_SKINS;  ownedKey = 'ownedCues';  activeKey = 'activeCue'; }
+    if (tab === 'felt')  { items = FELT_SKINS; ownedKey = 'ownedFelts'; activeKey = 'activeFelt'; }
+    if (tab === 'balls') { items = BALL_SKINS; ownedKey = 'ownedBalls'; activeKey = 'activeBalls'; }
+
+    const ownedItems = items.filter(it => (profile[ownedKey] || []).includes(it.id) || it.price === 0);
+    if (ownedItems.length === 0) return '<p style="color:var(--text-dim);font-size:13px;">No items owned in this category yet.</p>';
+
+    return `<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">` +
+      ownedItems.map(it => {
+        const equipped = profile[activeKey] === it.id;
+        return `<div onclick="inGameEquip('${it.id}','${tab}','${ownedKey}','${activeKey}')"
+          style="background:${equipped?'#2a2200':'var(--panel2)'};border:1.5px solid ${equipped?'var(--gold)':'#444'};
+          border-radius:8px;padding:10px;text-align:center;cursor:pointer;min-width:80px;">
+          <div style="font-size:22px;">${it.preview}</div>
+          <div style="font-size:11px;margin-top:4px;">${it.name}</div>
+          ${equipped ? '<div style="font-size:10px;color:var(--gold);">Equipped</div>' : ''}
+        </div>`;
+      }).join('') + '</div>';
+  }
+
+  function render(tab) {
+    modal.innerHTML = `
+      <div class="modal" style="max-width:480px;width:95%;">
+        <h3>🛒 Quick Equip — ${cp.name}</h3>
+        <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Owned items only. Visit the main menu shop to buy more.</p>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
+          ${['cues','felt','balls'].map(t =>
+            `<button onclick="(function(){window._igTab='${t}';document.querySelector('#igshop-content').innerHTML='';document.querySelector('#igshop-content').innerHTML=window._igBuild('${t}');document.querySelectorAll('.ig-tab').forEach(x=>x.style.borderColor='#444');event.target.style.borderColor='var(--gold)';})()"
+            class="ig-tab shop-tab${tab===t?' active':''}" style="padding:6px 14px;font-size:12px;">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
+          ).join('')}
+        </div>
+        <div id="igshop-content">${buildShopContent(tab)}</div>
+        <div style="margin-top:14px;"><button class="btn btn-outline btn-sm" onclick="this.closest('.modal-overlay').remove()">Close</button></div>
+      </div>`;
+    // Expose helpers to inline handlers
+    window._igBuild = buildShopContent;
+    window.inGameEquip = function(id, tabName, ownedKey, activeKey) {
+      profile[activeKey] = id;
+      saveProfile(profile);
+      // Also update live game state for the current player
+      if (cp) cp[activeKey === 'activeCue' ? 'activeCue' : activeKey === 'activeFelt' ? 'activeFelt' : 'activeBalls'] = id;
+      render(tabName);
+    };
+  }
+
+  render('cues');
   document.body.appendChild(modal);
 }
 
@@ -1620,6 +1676,7 @@ function onPointerDown(e) {
   if (Math.sqrt(dx*dx+dy*dy) < BALL_RADIUS * 3) {
     powerCharging = true;
     powerStart = Date.now();
+    setStatus('Hold to charge power — release to shoot. Drag away to cancel.');
   } else {
     aimDragging = true;
     G.aimAngle = Math.atan2(dy, dx);
@@ -1635,6 +1692,16 @@ function onPointerMove(e) {
     G.aimAngle = Math.atan2(y - cue.y, x - cue.x);
   }
   if (powerCharging) {
+    // Cancel power charge if user drags more than 40px away from cue ball
+    const ddx = x - cue.x, ddy = y - cue.y;
+    if (Math.sqrt(ddx*ddx + ddy*ddy) > 40) {
+      powerCharging = false;
+      G.power = 0;
+      document.getElementById('power-bar').style.width = '0%';
+      document.getElementById('power-pct').textContent = '0%';
+      setStatus(G.turnMsg || "Drag to aim, hold near cue ball to power up.");
+      return;
+    }
     const elapsed = (Date.now() - powerStart) / 1000;
     G.power = Math.min(1, elapsed * 0.8);
     const pct = Math.round(G.power * 100);
@@ -1746,21 +1813,49 @@ function onBallPocketed(ball) {
     return;
   }
   if (ball.num === 8) {
-    // 8-ball: win if all your balls pocketed, else loss
+    // Legal win: current player has cleared all their group balls
     const isLegal = cp.group && countRemaining(cp.group === 'solid') === 0;
-    G.winner = isLegal ? G.currentPlayer : (G.currentPlayer + 1) % G.players.length;
+    if (isLegal) {
+      G.winner = G.currentPlayer;
+    } else {
+      // Illegal 8-ball pocket: best opponent wins
+      // (fewest remaining balls of their own group; unassigned players count all non-8 balls)
+      let bestIdx = -1, bestRemaining = Infinity;
+      G.players.forEach((p, i) => {
+        if (i === G.currentPlayer) return;
+        let rem;
+        if (p.group) {
+          rem = countRemaining(p.group === 'solid');
+        } else {
+          rem = G.balls.filter(b => !b.pocketed && !b.isCue && b.num !== 8).length;
+        }
+        if (rem < bestRemaining) { bestRemaining = rem; bestIdx = i; }
+      });
+      // Fallback: just next player (handles edge case of 1-player game somehow)
+      G.winner = bestIdx >= 0 ? bestIdx : (G.currentPlayer + 1) % G.players.length;
+    }
     G.phase = 'gameover';
     return;
   }
-  // Assign group on first pocket
+  // Assign group on first pocket (works for any player count)
   if (!cp.group && G.breakShot === false) {
     cp.group = ball.solid ? 'solid' : 'stripe';
-    // Assign opposite to others (2-player)
-    G.players.forEach((p,i) => {
-      if (i !== G.currentPlayer && !p.group && G.players.length === 2) {
-        p.group = ball.solid ? 'stripe' : 'solid';
+    const opposite = ball.solid ? 'stripe' : 'solid';
+    // Assign opposite group to all unassigned opponents in rotation order
+    let assigned = 0;
+    for (let i = 1; i < G.players.length; i++) {
+      const idx = (G.currentPlayer + i) % G.players.length;
+      if (!G.players[idx].group) {
+        G.players[idx].group = opposite;
+        assigned++;
+        // In a 3+ player game, only the next unassigned player gets the opposite;
+        // remaining players stay unassigned until they pocket their first ball
+        if (G.players.length > 2 && assigned >= 1) break;
       }
-    });
+    }
+    // Announce group assignment
+    const groupLabel = cp.group === 'solid' ? '⬤ Solids' : '◎ Stripes';
+    setStatus(`${cp.name} is ${groupLabel}!`);
   }
   cp.ballsPocketed++;
 }
@@ -1779,16 +1874,41 @@ function endTurn() {
   const myBalls = pocketed.filter(b => !b.isCue && cp.group && ((cp.group==='solid')===b.solid) && b.num!==8);
   const scratch = G.foulThisTurn;
 
+  // No-hit foul: cue ball didn't contact any object ball
+  if (!scratch && !G.firstHitThisTurn) {
+    G.foulThisTurn = true;
+  }
+
+  // Wrong-ball foul: hit opponent's group ball first (only applies after groups assigned)
+  if (!G.foulThisTurn && G.firstHitThisTurn && cp.group) {
+    const firstIsMyGroup = cp.group === 'solid' ? G.firstHitThisTurn.solid : !G.firstHitThisTurn.solid;
+    const firstIsEight   = G.firstHitThisTurn.num === 8;
+    // Hitting the 8 first is only legal when you have no remaining group balls
+    if (firstIsEight) {
+      const myRemaining = countRemaining(cp.group === 'solid');
+      if (myRemaining > 0) G.foulThisTurn = true;
+    } else if (!firstIsMyGroup) {
+      G.foulThisTurn = true;
+    }
+  }
+
+  const foul = G.foulThisTurn;
   let keepTurn = false;
-  if (!scratch && myBalls.length > 0 && pocketed.filter(b=>!b.isCue && b.num!==8 && ((cp.group==='solid')!==b.solid)).length===0) {
+  if (!foul && myBalls.length > 0 && pocketed.filter(b=>!b.isCue && b.num!==8 && ((cp.group==='solid')!==b.solid)).length===0) {
     keepTurn = true;
   }
 
-  if (scratch) {
-    setStatus(`Scratch! ${cp.name} fouled — cue ball replaced.`);
+  if (foul) {
+    // Determine foul type for message
+    let foulReason = 'fouled';
+    if (scratch) foulReason = 'scratched';
+    else if (!G.firstHitThisTurn) foulReason = 'missed all balls';
+    else foulReason = 'hit the wrong ball first';
+
     const cue = G.balls.find(b => b.isCue);
     if (cue) { cue.pocketed=false; cue.x=TX+TW*0.25; cue.y=TY+TH/2; cue.vx=0; cue.vy=0; }
     G.currentPlayer = (G.currentPlayer+1) % G.players.length;
+    setStatus(`Foul! ${cp.name} ${foulReason} — ${G.players[G.currentPlayer].name}'s turn.`);
   } else if (!keepTurn) {
     G.currentPlayer = (G.currentPlayer+1) % G.players.length;
     setStatus(G.players[G.currentPlayer].name + "'s turn.");
@@ -1797,7 +1917,7 @@ function endTurn() {
   }
 
   // Award coins for pocketing (human players only)
-  if (myBalls.length > 0 && !scratch && !cp.isAI && !cp.isGuest) {
+  if (myBalls.length > 0 && !foul && !cp.isAI && !cp.isGuest) {
     const earned = awardCoins(getProfile(cp.profileId), myBalls.length * 2);
     cp.earnedCoins += earned;
   }
@@ -1833,6 +1953,10 @@ function doAITurn() {
   const char  = cp.aiChar;
   const cue   = getCueBall();
   if (!cue) return;
+
+  // Always reset spin at start of AI turn
+  G.spin = { x: 0, y: 0 };
+  drawSpin();
 
   // ── 1. Pick target ball ──
   const target = aiPickTarget(cp, char);
@@ -1881,9 +2005,11 @@ function doAITurn() {
 
   // ── 7. Show aim line briefly then shoot ──
   setStatus(`${cp.avatar} ${cp.name} shoots!`);
+  G.aiAiming = true;  // flag: render the cue stick for AI during this window
   setTimeout(() => {
+    G.aiAiming = false;
     if (G.phase === 'aiming') shoot();
-  }, 300);
+  }, 600);
 }
 
 function aiPickTarget(cp, char) {
@@ -1947,7 +2073,8 @@ function aiExecuteShot(cue, target, char) {
   const angle = Math.atan2(target.y - cue.y, target.x - cue.x);
   G.aimAngle  = angle + (Math.random() - 0.5) * 2 * char.aimNoise;
   G.power     = char.powerMin + Math.random() * (char.powerMax - char.powerMin);
-  setTimeout(() => { if (G.phase === 'aiming') shoot(); }, 300);
+  G.aiAiming  = true;
+  setTimeout(() => { G.aiAiming = false; if (G.phase === 'aiming') shoot(); }, 600);
 }
 
 
@@ -2210,9 +2337,9 @@ function render() {
   c.fillRect(0,0,canvas.width,canvas.height);
   drawTable();
   drawBalls();
-  // Only draw cue stick for human players during aiming
+  // Draw cue stick for human players, and briefly for AI during aim preview
   const cp = G.players && G.players[G.currentPlayer];
-  if (!cp || !cp.isAI) drawCueStick();
+  if (!cp || !cp.isAI || G.aiAiming) drawCueStick();
 }
 
 // ── GAME LOOP ──
